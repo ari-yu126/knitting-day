@@ -1,0 +1,30 @@
+{
+  "name": "stitch-flow",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ari-yu126/stitch-flow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ari-yu126/stitch-flow/issues"
+  },
+  "homepage": "https://github.com/ari-yu126/stitch-flow#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
