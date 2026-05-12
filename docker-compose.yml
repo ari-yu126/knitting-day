@@ -1,14 +1,14 @@
 services:
   postgres:
     image: postgres:16
-    container_name: stitch-flow-postgres
+    container_name: knitting-day-postgres
     restart: always
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: stitchflow
+      POSTGRES_USER: knittingday
       POSTGRES_PASSWORD: 1234
-      POSTGRES_DB: stitch_flow
+      POSTGRES_DB: knitting_day
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
