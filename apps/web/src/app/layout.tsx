@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import "@/styles/tailwind.css";
 import "@/styles/global.scss";
 
 const notoSansKR = Noto_Sans_KR({
@@ -10,8 +11,9 @@ const notoSansKR = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "Knitting Day",
-  description: "니팅 데이 - 당신의 이야기를 엮다",
+  title: "뜨개한 날 | Knitting Day",
+  description:
+    "실은 샀는데 뭘 떠야 할지 모르겠다면 — 손땀 분석, AI 실 팔레트, 뜨개 커뮤니티까지 한곳에서.",
 };
 
 export default function RootLayout({
@@ -24,7 +26,7 @@ export default function RootLayout({
       lang="ko"
       className={`${notoSansKR.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-screen flex-col">
         {children}
       </body>
     </html>

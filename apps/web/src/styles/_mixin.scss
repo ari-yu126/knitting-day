@@ -1,9 +1,42 @@
-@use 'sass:math';
+@use "sass:math";
 
 // base
 $base-font-size: 16px;
 
+// Color tokens live in tailwind.css @theme (font, purple, gray, beige, etc.)
+
 // px → rem 변환
 @function rem($px, $base: $base-font-size) {
   @return math.div($px, $base) * 1rem;
+}
+
+// mobile: 0–767px | tablet: 768–1279px | pc: 1280–1920px
+@mixin mobile {
+  @media (max-width: rem(767)) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: rem(768)) and (max-width: rem(1279)) {
+    @content;
+  }
+}
+
+@mixin tablet-up {
+  @media (min-width: rem(768)) {
+    @content;
+  }
+}
+
+@mixin pc {
+  @media (min-width: rem(1280)) and (max-width: rem(1920)) {
+    @content;
+  }
+}
+
+@mixin pc-up {
+  @media (min-width: rem(1280)) {
+    @content;
+  }
 }

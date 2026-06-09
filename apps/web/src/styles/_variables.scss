@@ -1,11 +1,4 @@
-@use 'mixin' as *;
-
-// ===============================
-// Color
-// ===============================
-$color-primary: #333;
-$color-secondary: #fff;
-
+@use "mixin" as *;
 
 // ===============================
 // Typography
@@ -14,7 +7,7 @@ $font-family-base: var(--font-noto-sans-kr), apple-system, sans-serif;
 $font-size-xsmall: rem(12);
 $font-size-small: rem(14);
 $font-size-medium: rem(16);
-$font-size-large: rem(18);;
+$font-size-large: rem(18);
 $font-size-xlarge: rem(24);
 
 $font-weight-regular: 400;
@@ -23,14 +16,15 @@ $font-weight-bold: 700;
 
 $line-height-base: 1.5;
 
-
 // ===============================
 // Breakpoint
+// mobile: 0–767px | tablet: 768–1279px | pc: 1280–1920px
 // ===============================
-$breakpoint-mobile: rem(640);
-$breakpoint-tablet: rem(1024);
-$breakpoint-desktop: rem(1280);
-
+$breakpoint-mobile-max: rem(767);
+$breakpoint-tablet: rem(768);
+$breakpoint-tablet-max: rem(1279);
+$breakpoint-pc: rem(1280);
+$breakpoint-pc-max: rem(1920);
 
 // ===============================
 // Radius

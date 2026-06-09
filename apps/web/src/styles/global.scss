@@ -1,4 +1,4 @@
-@use 'variables' as *;
+@use "variables" as *;
 
 // ===============================
 // Reset
@@ -8,27 +8,45 @@
 *::after {
   box-sizing: border-box;
 }
-body,
-h1, h2, h3, h4, h5, h6,
-p,
-ul, ol {
-  margin: 0;
-  padding: 0;
-}
-ul, ol {
-  list-style: none;
-}
-img, picture, video, canvas {
+
+img,
+picture,
+video,
+canvas {
   display: block;
   max-width: 100%;
 }
-button {
-  all: unset;
-  cursor: pointer;
+
+@layer base {
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  ul,
+  ol {
+    margin: 0;
+    padding: 0;
+  }
+
+  ul,
+  ol {
+    list-style: none;
+  }
+
+  button {
+    all: unset;
+    cursor: pointer;
+  }
 }
 body {
   font-family: $font-family-base;
   line-height: $line-height-base;
+  color: var(--color-base);
+  background-color: var(--color-bg);
 }
 
 // ===============================

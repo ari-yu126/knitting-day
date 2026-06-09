@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@theme {
+  /* --color-oatmeal: #f7f3ec;
+  --color-oatmeal-dark: #ebe4d8;
+  --color-beige: #e5ddd0;
+  --color-warm-gray: #8a8278;
+  --color-warm-gray-light: #b5aea3;
+  --color-ink: #1a1625;
+  --color-violet: #6d28d9;
+  --color-violet-light: #8b5cf6;
+  --color-purple: #7c3aed;
+  --color-plum: #4c1d95;
+  --color-lavender: #c4b5fd;
+  --color-charcoal: #3d3a45;
+  --color-deep-plum: #2e1065; */
+  --color-base: #333;
+  --color-white: #fff;
+  --color-gray: #4c4452;
+  --color-gray-light: #b1a8b9;
+  --color-soft-gray: #f4f4f4;
+
+  --color-purple: #450693;
+  --color-purple-light: #bca1d4;
+
+  --color-oatmeal: #f7f3ec;
+  --color-beige: #e5ddd0;
+
+  --color-beige-light: #f9f2e8;
+
+  --color-bg: #fffdfb;
+
+  --font-sans: var(--font-noto-sans-kr), ui-sans-serif, system-ui, sans-serif;
+
+  /* Site content max width: 1920px (120rem) */
+  --max-width-site: 120rem;
+
+  /*
+   * Breakpoints (mobile-first)
+   * mobile: 0–767px     (default, no prefix)
+   * tablet: 768–1279px  (tablet:, sm:, md:)
+   * pc:     1280–1920px  (pc:, lg:, xl:)
+   */
+  --breakpoint-sm: 48rem; /* 768px — tablet */
+  --breakpoint-md: 48rem; /* 768px — tablet */
+  --breakpoint-lg: 80rem; /* 1280px — pc */
+  --breakpoint-xl: 80rem; /* 1280px — pc */
+  --breakpoint-2xl: 120rem; /* 1920px — max content */
+
+  --breakpoint-tablet: 48rem;
+  --breakpoint-pc: 80rem;
+
+  --animate-community-scroll-up-slow: community-scroll-up 38s linear infinite;
+  --animate-community-scroll-up-fast: community-scroll-up 24s linear infinite;
+}
+
+@keyframes community-scroll-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+/* Scroll-triggered section entrance */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(1.75rem);
+  transition:
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal[data-visible] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+}
+
+/* Search panel drop-down entrance */
+@keyframes search-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-panel-enter {
+  animation: search-panel-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Community preview carousel — full-bleed track, container-aligned offsets */
+.community-preview-swiper {
+  overflow: hidden;
+  width: 100%;
+}
+
+.community-preview-swiper .community-preview-slide {
+  flex-shrink: 0;
+  height: auto;
+  box-sizing: border-box;
+}
+
+.feature-menu-icon {
+  display: inline-block;
+  background-color: var(--color-purple);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
