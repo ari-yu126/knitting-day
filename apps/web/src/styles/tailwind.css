@@ -21,7 +21,7 @@
   --color-soft-gray: #f4f4f4;
 
   --color-purple: #450693;
-  --color-purple-light: #bca1d4;
+  --color-purple-light: #ece6f6;
 
   --color-oatmeal: #f7f3ec;
   --color-beige: #e5ddd0;
@@ -124,4 +124,27 @@
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
+}
+
+/* Post cover placeholder — gradient + stripe overlay */
+.post-cover-placeholder {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    150deg,
+    var(--color-purple-light),
+    color-mix(in srgb, var(--color-purple) 72%, var(--color-purple-light))
+  );
+}
+
+.post-cover-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.14) 0 8px,
+    rgba(255, 255, 255, 0) 8px 16px
+  );
+  pointer-events: none;
 }

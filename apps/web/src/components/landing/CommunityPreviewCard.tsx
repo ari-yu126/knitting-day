@@ -16,7 +16,6 @@ export function CommunityPreviewCard({ post }: CommunityPreviewCardProps) {
     >
       <div className="bg-oatmeal aspect-4/4 overflow-hidden rounded-2xl">
         <PostCoverImage
-          postId={post.id}
           imageUrl={post.imageUrl}
           alt={`${post.title} 썸네일`}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

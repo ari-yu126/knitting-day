@@ -1,21 +1,66 @@
 import Link from "next/link";
-import { ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { cn } from "@/lib/cn";
+import { MobilePagePicker } from "@/components/posts/MobilePagePicker";
 
-const PAGE_BLOCK_SIZE = 10;
+const TABLET_PC_PAGE_BLOCK_SIZE = 10;
+
+const navControlClass =
+  "inline-flex h-9 w-9 items-center justify-center rounded-md text-font transition-colors hover:bg-purple-light";
 
 type PostsPaginationProps = {
   page: number;
   totalPages: number;
 };
 
-function getVisiblePageNumbers(page: number, totalPages: number): number[] {
-  const blockStart =
-    Math.floor((page - 1) / PAGE_BLOCK_SIZE) * PAGE_BLOCK_SIZE + 1;
-  const blockEnd = Math.min(blockStart + PAGE_BLOCK_SIZE - 1, totalPages);
+function getVisiblePageNumbers(
+  page: number,
+  totalPages: number,
+  blockSize: number,
+): number[] {
+  const blockStart = Math.floor((page - 1) / blockSize) * blockSize + 1;
+  const blockEnd = Math.min(blockStart + blockSize - 1, totalPages);
 
   return Array.from(
     { length: blockEnd - blockStart + 1 },
     (_, index) => blockStart + index,
+  );
+}
+
+function PageNumberLinks({
+  pageNumbers,
+  currentPage,
+}: {
+  pageNumbers: number[];
+  currentPage: number;
+}) {
+  return (
+    <>
+      {pageNumbers.map((pageNumber) => {
+        const isActive = pageNumber === currentPage;
+
+        return (
+          <Link
+            key={pageNumber}
+            href={`/stitchday?page=${pageNumber}`}
+            aria-current={isActive ? "page" : undefined}
+            className={cn(
+              "hover:bg-purple-light inline-flex h-9 min-w-9 items-center justify-center rounded-md px-2 text-sm font-medium transition-all",
+              isActive
+                ? "bg-purple text-beige-light border-transparent font-bold"
+                : "text-font hover:text-purple hover:border-purple/30 border-transparent",
+            )}
+          >
+            {pageNumber}
+          </Link>
+        );
+      })}
+    </>
   );
 }
 
@@ -24,95 +69,63 @@ export function PostsPagination({ page, totalPages }: PostsPaginationProps) {
 
   const prevPage = page > 1 ? page - 1 : null;
   const nextPage = page < totalPages ? page + 1 : null;
-  const pageNumbers = getVisiblePageNumbers(page, totalPages);
+  const tabletPcPageNumbers = getVisiblePageNumbers(
+    page,
+    totalPages,
+    TABLET_PC_PAGE_BLOCK_SIZE,
+  );
 
   return (
     <nav
-      className="mt-10 flex flex-wrap items-center justify-center gap-2"
+      className="mt-10 flex flex-nowrap items-center justify-center gap-2 md:gap-1"
       aria-label="게시글 페이지"
     >
       {page > 1 ? (
         <Link
           href="/stitchday?page=1"
           aria-label="첫 페이지"
-          className="inline-flex items-center gap-1 rounded-xl px-2.5 py-2.5 text-sm font-medium text-font transition-colors hover:border-purple/30 hover:text-purple"
+          className={navControlClass}
         >
           <ChevronsLeft className="h-4 w-4" aria-hidden />
         </Link>
-      ) : (
-        <></>
-        // <span
-        //   aria-hidden
-        //   className="inline-flex items-center gap-1 rounded-2xl border border-beige/60 px-2.5 py-2.5 text-sm text-gray-light"
-        // >
-        //   <ChevronsLeft className="h-4 w-4" />
-        // </span>
-      )}
+      ) : null}
+
       {prevPage ? (
         <Link
           href={`/stitchday?page=${prevPage}`}
-          className="inline-flex items-center gap-1 rounded-xl bg-beige-light/80 px-2.5 py-2.5 text-sm font-medium text-font transition-colors hover:border-purple/30 hover:text-purple"
+          aria-label="이전 페이지"
+          className={navControlClass}
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
         </Link>
-      ) : (
-        <></>
-        // <span className="inline-flex items-center gap-1 rounded-2xl border border-beige/60 px-2.5 py-2.5 text-sm text-gray-light">
-        //   <ChevronLeft className="h-4 w-4" aria-hidden />
-        // </span>
-      )}
+      ) : null}
 
-      <div className="flex flex-wrap items-center justify-center gap-1">
-        {pageNumbers.map((pageNumber) => {
-          const isActive = pageNumber === page;
-
-          return (
-            <Link
-              key={pageNumber}
-              href={`/stitchday?page=${pageNumber}`}
-              aria-current={isActive ? "page" : undefined}
-              className={`inline-flex h-9 min-w-9 items-center justify-center px-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "text-purple border-b-purple font-bold"
-                  : "hover:border-b border-beige bg-beige-light/80 text-font hover:border-purple/30 hover:text-purple"
-              }`}
-            >
-              {pageNumber}
-            </Link>
-          );
-        })}
+      <div className="md:hidden">
+        <MobilePagePicker page={page} totalPages={totalPages} />
+      </div>
+      <div className="hidden flex-wrap items-center justify-center gap-2 md:flex md:gap-1">
+        <PageNumberLinks pageNumbers={tabletPcPageNumbers} currentPage={page} />
       </div>
 
       {nextPage ? (
         <Link
           href={`/stitchday?page=${nextPage}`}
-          className="inline-flex items-center gap-1 bg-beige-light/80 px-2.5 py-2.5 text-sm font-medium text-font transition-colors hover:border-purple/30 hover:text-purple"
+          aria-label="다음 페이지"
+          className={navControlClass}
         >
           <ChevronRight className="h-4 w-4" aria-hidden />
         </Link>
-      ) : (
-        <></>
-        // <span className="inline-flex items-center gap-1 rounded-xl border border-beige/60 px-2.5 py-2.5 text-sm text-gray-light">
-        //   <ChevronRight className="h-4 w-4" aria-hidden />
-        // </span>
-      )}
+      ) : null}
+
       {page < totalPages ? (
         <Link
           href={`/stitchday?page=${totalPages}`}
           aria-label="마지막 페이지"
-          className="inline-flex items-center gap-1 bg-beige-light/80 px-2.5 py-2.5 text-sm font-medium text-font transition-colors hover:border-purple/30 hover:text-purple"
+          className={navControlClass}
         >
           <ChevronsRight className="h-4 w-4" aria-hidden />
         </Link>
-      ) : (
-        <></>
-        // <span
-        //   aria-hidden
-        //   className="inline-flex items-center gap-1 rounded-xl border border-beige/60 px-2.5 py-2.5 text-sm text-gray-light"
-        // >
-        //   <ChevronsRight className="h-4 w-4" />
-        // </span>
-      )}
+      ) : null}
     </nav>
   );
 }

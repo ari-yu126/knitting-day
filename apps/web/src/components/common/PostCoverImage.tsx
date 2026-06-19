@@ -1,19 +1,25 @@
-import { resolvePostCoverImageUrl } from "@/lib/post-cover-image";
+import { cn } from "@/lib/cn";
+import { hasPostCoverImage } from "@/lib/post-cover-image";
+import { PostCoverPlaceholder } from "@/components/common/PostCoverPlaceholder";
 
 type PostCoverImageProps = {
-  postId: number;
   imageUrl?: string | null;
   alt: string;
   className?: string;
 };
 
 export function PostCoverImage({
-  postId,
   imageUrl,
   alt,
   className,
 }: PostCoverImageProps) {
-  const src = resolvePostCoverImageUrl({ postId, imageUrl });
+  if (hasPostCoverImage(imageUrl)) {
+    return (
+      <img src={imageUrl!.trim()} alt={alt} className={cn(className)} />
+    );
+  }
 
-  return <img src={src} alt={alt} className={className} />;
+  return (
+    <PostCoverPlaceholder ariaLabel={alt} className={className} />
+  );
 }
