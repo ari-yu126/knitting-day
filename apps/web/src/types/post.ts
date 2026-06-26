@@ -1,3 +1,7 @@
+import type { PostCategory } from "@/data/post-categories";
+
+export type { PostCategory };
+
 export type PostListItem = {
   id: number;
   title: string;
@@ -5,6 +9,7 @@ export type PostListItem = {
   createdAt: string;
   likes: number;
   commentsCount: number;
+  category: PostCategory;
   tags: string[];
   /** Post cover image when attached */
   imageUrl?: string;

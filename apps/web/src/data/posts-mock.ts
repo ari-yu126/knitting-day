@@ -1,6 +1,25 @@
 import type { PostDetail, PostListItem, PostsPageResult } from "@/types/post";
+import { POST_CATEGORIES } from "@/data/post-categories";
 
 export const POSTS_PER_PAGE = 6;
+
+/** N일 전 날짜를 반환 (목업 데이터의 작성일 앵커링용) */
+function daysAgo(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
+/** 오늘이면 "오늘", 그 외에는 YYYY.MM.DD로 표기 */
+function formatPostDate(date: Date): string {
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) return "오늘";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day}`;
+}
 
 function createMockPost(id: number): PostDetail {
   return {
@@ -8,9 +27,10 @@ function createMockPost(id: number): PostDetail {
     title: `뜨개 기록 #${id}`,
     author: id % 2 === 0 ? "Frida" : "실뜨는고양이",
     tension: id % 2 === 0 ? "looser" : "tighter",
-    createdAt: `${id}일 전`,
+    createdAt: formatPostDate(daysAgo(id)),
     likes: 10 + (id % 20),
     commentsCount: 0,
+    category: POST_CATEGORIES[id % POST_CATEGORIES.length],
     tags: ["#뜨개일기"],
     content: `목업 게시글 ${id}입니다. 페이징 UI 확인용 데이터입니다.`,
     comments: [],
@@ -23,9 +43,10 @@ const BASE_MOCK_POSTS: PostDetail[] = [
     title: "블랙베리 아란 가디건 — 3단 떴어요!",
     author: "실뜨는고양이",
     tension: "looser",
-    createdAt: "2시간 전",
+    createdAt: formatPostDate(daysAgo(0)),
     likes: 42,
     commentsCount: 2,
+    category: "뜨개일기",
     tags: ["#블랙베리아란가디건", "#겨울뜨개"],
     imageUrl: "/images/knit1.png",
     content:
@@ -50,9 +71,10 @@ const BASE_MOCK_POSTS: PostDetail[] = [
     title: "처음 뜬 베레모, 게이지가 너무 쫀쫀해요 ㅠ",
     author: "초보뜨개러",
     tension: "looser",
-    createdAt: "5시간 전",
+    createdAt: formatPostDate(daysAgo(0)),
     likes: 28,
     commentsCount: 2,
+    category: "게이지고민",
     tags: ["#쫀손고민", "#베레모"],
     content:
       "첫 베레모인데 10cm에 24코가 나왔어요. 도안은 22코 기준이라 머리에 안 들어갈 것 같아요.\n\n풀고 다시 떠야 할까요, 아니면 코 수만 늘려서 진행해도 될까요? 조언 부탁드려요.",
@@ -76,9 +98,10 @@ const BASE_MOCK_POSTS: PostDetail[] = [
     title: "오트밀 실로 만든 머플러 컬러 조합 공유",
     author: "Frida",
     tension: "tighter",
-    createdAt: "어제",
+    createdAt: formatPostDate(daysAgo(1)),
     likes: 67,
     commentsCount: 1,
+    category: "실자랑",
     tags: ["#오트밀", "#머플러", "#컬러팔레트"],
     imageUrl: "/images/knit2.png",
     content:
@@ -97,9 +120,10 @@ const BASE_MOCK_POSTS: PostDetail[] = [
     title: "케이블 스웨터 소매 분리 질문",
     author: "게이지박사",
     tension: "looser",
-    createdAt: "어제",
+    createdAt: formatPostDate(daysAgo(1)),
     likes: 19,
     commentsCount: 1,
+    category: "질문있어요",
     tags: ["#케이블", "#도안질문"],
     content:
       "도안에 round yoke인데 소매를 따로 떠서 붙이는 방식이에요.\n\n겨드랑이 쪽 코 주울 때 구멍 안 생기게 하는 팁이 있을까요?",
@@ -117,9 +141,10 @@ const BASE_MOCK_POSTS: PostDetail[] = [
     title: "뜨개방에서 산 실, 게이지가 도안이랑 완전 달라요",
     author: "yarnlover",
     tension: "tighter",
-    createdAt: "2일 전",
+    createdAt: formatPostDate(daysAgo(2)),
     likes: 35,
     commentsCount: 0,
+    category: "게이지고민",
     tags: ["#게이지", "#실추천"],
     content:
       "라벨 게이지는 20코인데 제 손땀은 17코… 도안 실을 안 샀더니 이런 일이.\n\n비슷한 두께 다른 브랜드 실 추천해주실 분?",
@@ -130,9 +155,10 @@ const BASE_MOCK_POSTS: PostDetail[] = [
     title: "첫 바라클라바 완성! 사진보다 실물이 나음",
     author: "겨울뜨개",
     tension: "tighter",
-    createdAt: "2일 전",
+    createdAt: formatPostDate(daysAgo(2)),
     likes: 51,
     commentsCount: 1,
+    category: "완성샷",
     tags: ["#바라클라바", "#완성"],
     content:
       "charcoal + oatmeal 콤비로 떴습니다. 안감은 fleece 안 넣었는데 두께감 괜찮아요.\n\n귀 쪽만 조금 타이트해서 다음엔 코 4개 늘릴 것 같아요.",
@@ -150,9 +176,10 @@ const BASE_MOCK_POSTS: PostDetail[] = [
     title: "대바늘 vs 코바늘 게이지 차이",
     author: "초보뜨개러",
     tension: "looser",
-    createdAt: "3일 전",
+    createdAt: formatPostDate(daysAgo(3)),
     likes: 22,
     commentsCount: 0,
+    category: "질문있어요",
     tags: ["#대바늘", "#게이지"],
     content:
       "같은 실인데 대바늘이 훨씬 널널하게 나와요. 대바늘로 뜨다가 코바늘 도안 들어가면 항상 헷갈려요.\n\n둘 다 쓰시는 분들 팁 공유해주세요.",
@@ -163,9 +190,10 @@ const BASE_MOCK_POSTS: PostDetail[] = [
     title: "실 정리함 추천해주세요",
     author: "Frida",
     tension: "tighter",
-    createdAt: "3일 전",
+    createdAt: formatPostDate(daysAgo(3)),
     likes: 14,
     commentsCount: 0,
+    category: "질문있어요",
     tags: ["#실보관", "#정리"],
     content:
       "합사 실이랑 단색 실이 섞이니까 찾기가 너무 힘들어요.\n\n습도 관리도 되는 보관법이나 수납함 추천 부탁드려요.",
@@ -191,13 +219,28 @@ export function getPostById(id: number): PostDetail | undefined {
   return MOCK_POSTS.find((post) => post.id === id);
 }
 
-export function getPostsPage(page: number): PostsPageResult {
+export type PostSortKey = "latest" | "popular" | "comments";
+
+function sortPosts(posts: PostDetail[], sort: PostSortKey): PostDetail[] {
+  if (sort === "popular") return [...posts].sort((a, b) => b.likes - a.likes);
+  if (sort === "comments")
+    return [...posts].sort((a, b) => b.commentsCount - a.commentsCount);
+  return posts;
+}
+
+export function getPostsPage(
+  page: number,
+  sort: PostSortKey = "latest",
+): PostsPageResult {
+  const sorted = sortPosts(MOCK_POSTS, sort);
   const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-  const total = MOCK_POSTS.length;
+  const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / POSTS_PER_PAGE));
   const currentPage = Math.min(safePage, totalPages);
   const start = (currentPage - 1) * POSTS_PER_PAGE;
-  const posts = MOCK_POSTS.slice(start, start + POSTS_PER_PAGE).map(toListItem);
+  const posts = sorted
+    .slice(start, start + POSTS_PER_PAGE)
+    .map(toPreviewListItem);
 
   return {
     posts,

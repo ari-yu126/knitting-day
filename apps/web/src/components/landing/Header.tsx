@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useCallback, type MouseEvent } from "react";
+import { useState, useCallback, useEffect, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
 import { UserRound, UsersRound, Menu, X, Search } from "lucide-react";
 import { MOCK_IS_LOGGED_IN, NAV_LINKS } from "@/data/landing-mock";
 import { SearchBar } from "./SearchBar";
 import { SearchPanel } from "./SearchPanel";
 import { Alarm } from "./AlarmIcon";
 import type { NavLinkItem } from "@/types/landing";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { Container } from "./Container";
 
-const navLinkClass = "text-sm font-medium transition-colors hover:text-purple";
+const navLinkClass =
+  "py-1.5 text-sm font-medium transition-colors hover:text-purple md:py-0 hover:font-bold";
 
 function isNavLinkAvailable(href?: string) {
   if (!href) return false;
@@ -67,6 +70,22 @@ function NavMenuItem({
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
+
+  const closeMobileMenu = useCallback(() => {
+    setMobileOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") closeMobileMenu();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen, closeMobileMenu]);
 
   const openSearch = useCallback(() => {
     setMobileOpen(false);
@@ -76,6 +95,8 @@ export function Header() {
   const closeSearch = useCallback(() => {
     setSearchOpen(false);
   }, []);
+
+  useBodyScrollLock(mobileOpen || searchOpen);
 
   return (
     <header className="border-beige/50 bg-bg sticky top-0 z-50 border-b backdrop-blur-xl">
@@ -108,8 +129,8 @@ export function Header() {
                 aria-label="내 프로필 이동"
                 className="group"
               >
-                <UserRound className="size-5 text-gray group-hover:hidden" />
-                <UsersRound className="size-5 text-gray hidden group-hover:block" />
+                <UserRound className="text-gray size-5 group-hover:hidden" />
+                <UsersRound className="text-gray hidden size-5 group-hover:block" />
               </Link>
             ) : (
               <Link
@@ -130,31 +151,43 @@ export function Header() {
             onClick={() => setMobileOpen((prev) => !prev)}
           >
             {mobileOpen ? (
-              <X className="size-6 text-gray" />
+              <X className="text-gray size-6" />
             ) : (
-              <Menu className="size-6 text-gray" />
+              <Menu className="text-gray size-6" />
             )}
           </button>
         </div>
 
+        {mobileOpen &&
+          portalTarget &&
+          createPortal(
+            <button
+              type="button"
+              aria-label="메뉴 닫기"
+              className="fixed inset-0 top-20 z-40 bg-black/40 md:hidden"
+              onClick={closeMobileMenu}
+            />,
+            portalTarget,
+          )}
+
         {mobileOpen && (
-          <nav className="border-beige/60 flex flex-col gap-4 border-t py-4 md:hidden">
+          <nav className="border-beige/60 bg-bg fixed top-20 right-0 left-0 z-50 flex flex-col gap-4 border-t border-b px-6 py-6 md:hidden">
             {NAV_LINKS.map((link) => (
               <NavMenuItem
                 key={link.label}
                 link={link}
-                onNavigate={() => setMobileOpen(false)}
+                onNavigate={closeMobileMenu}
               />
             ))}
 
             {/* 모바일 인라인 검색 */}
             <form
-              className="flex items-center gap-2 pt-1"
+              className="border-beige/60 flex items-center gap-2 border-t pt-5"
               onSubmit={(e) => {
                 e.preventDefault();
                 const input = e.currentTarget.querySelector("input");
                 const term = input?.value.trim();
-                if (term) setMobileOpen(false);
+                if (term) closeMobileMenu();
                 // TODO: 검색 결과 페이지로 이동
               }}
             >
@@ -177,29 +210,31 @@ export function Header() {
               </button>
             </form>
 
-            <div className="flex items-center gap-3">
-              <Alarm />
+            <div className="flex flex-row items-center justify-end gap-4 pt-2 pb-4">
+              <div className="flex items-center gap-3">
+                <Alarm />
+              </div>
+              {MOCK_IS_LOGGED_IN ? (
+                <Link
+                  href="/mypage"
+                  aria-label="내 프로필 이동"
+                  className="group flex items-center gap-2"
+                  onClick={closeMobileMenu}
+                >
+                  <UserRound className="text-gray size-5 group-hover:hidden" />
+                  <UsersRound className="text-gray hidden size-5 group-hover:block" />
+                  <span className="text-sm font-medium">마이페이지</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="from-purple to-purple-light text-beige-light inline-flex justify-center rounded-2xl bg-linear-to-r px-5 py-2.5 text-sm font-semibold"
+                  onClick={closeMobileMenu}
+                >
+                  LOGIN
+                </Link>
+              )}
             </div>
-            {MOCK_IS_LOGGED_IN ? (
-              <Link
-                href="/mypage"
-                aria-label="내 프로필 이동"
-                className="group flex items-center gap-2"
-                onClick={() => setMobileOpen(false)}
-              >
-                <UserRound className="size-5 text-gray group-hover:hidden" />
-                <UsersRound className="size-5 text-gray hidden group-hover:block" />
-                <span className="text-sm font-medium">마이페이지</span>
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="from-purple to-purple-light text-beige-light inline-flex justify-center rounded-2xl bg-linear-to-r px-5 py-2.5 text-sm font-semibold"
-                onClick={() => setMobileOpen(false)}
-              >
-                LOGIN
-              </Link>
-            )}
           </nav>
         )}
       </Container>

@@ -4,13 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
+import type { PostSortKey } from "@/data/posts-mock";
 
 type MobilePagePickerProps = {
   page: number;
   totalPages: number;
+  sort?: PostSortKey;
 };
 
-export function MobilePagePicker({ page, totalPages }: MobilePagePickerProps) {
+export function MobilePagePicker({
+  page,
+  totalPages,
+  sort,
+}: MobilePagePickerProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,7 +86,11 @@ export function MobilePagePicker({ page, totalPages }: MobilePagePickerProps) {
                   )}
                   onClick={() => {
                     setOpen(false);
-                    router.push(`/stitchday?page=${pageNumber}`);
+                    router.push(
+                      sort && sort !== "latest"
+                        ? `/stitchday?page=${pageNumber}&sort=${sort}`
+                        : `/stitchday?page=${pageNumber}`,
+                    );
                   }}
                 >
                   {pageNumber}페이지
