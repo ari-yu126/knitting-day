@@ -1,9 +1,7 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import { query } from "./lib/db";
-
-dotenv.config();
+import express from "express"; // 웹서버 구축을 위한 라이브러리
+import cors from "cors"; // 프론트, 백엔드 다른 주소일때 접속 허용해줌
+import { query } from "./lib/db"; // db.ts에서 만든 query 함수 가져오기
+import authRouter from "./routes/auth"; // auth.ts에서 만든 authRouter 가져오기
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -34,6 +32,8 @@ app.get("/db-test", async (_req, res) => {
     });
   }
 });
+
+app.use("/auth", authRouter);
 
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
