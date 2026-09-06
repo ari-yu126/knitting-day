@@ -176,3 +176,15 @@
 
 - **문제**: 로그인 페이지는 실패 시 하단 토스트로 실제 에러 메시지를 보여주는데, 회원가입 최종 제출(`POST /auth/signup`)이 실패하면 `console.error`만 찍고 화면엔 아무 피드백이 없었음.
 - **해결**: 로그인 페이지와 동일한 토스트 UI(하단 고정, 2.6초 후 자동 소멸) + 타이머 패턴을 회원가입 페이지에도 그대로 적용, `getApiErrorMessage`로 백엔드가 보낸 실제 실패 사유를 노출.
+
+---
+
+## 배포 준비 (Docker / GitHub Actions)
+
+- **api 빌드가 원래 깨져 있던 이유**: `tsconfig.json`의 `module: "nodenext"`는 상대경로 import에 `.js` 확장자를 강제하는데(컴파일 결과물 기준 확장자), 실제 코드는 확장자 없이 작성돼 있었음. 개발 중엔 `tsx`가 이걸 알아서 처리해줘서 안 드러났지만, `tsc`로 진짜 빌드하면 에러남 — 모든 상대경로 import에 `.js`를 붙여서 해결(`../lib/db` → `../lib/db.js`). `@types/pg`, `@types/jsonwebtoken`도 없어서 추가 설치.
+- **`outDir` 미설정 문제**: `tsconfig.json`에 `rootDir`/`outDir`이 주석 처리돼 있어서 빌드 결과물이 `dist/`가 아니라 `src/` 안에 소스랑 섞여서 생성되고 있었음. 두 값을 채워서 `dist/`로 정리되게 고침.
+- **`npm run build`(`tsc`)까지 통과 + `node dist/server.js` 실행까지 확인 완료** — 이게 안 되면 Docker 이미지 자체가 안 만들어짐.
+- **모노레포 Dockerfile 구조**: npm workspaces(`apps/*`)라서 Dockerfile의 빌드 컨텍스트는 항상 저장소 루트. api/web 두 워크스페이스의 `package.json`만 먼저 복사해서 `npm ci`로 의존성을 설치(레이어 캐시에도 유리, web 소스 전체는 필요 없음) → 그 다음 해당 앱 소스만 복사해서 빌드하는 멀티스테이지 구조.
+- **web은 `output: "standalone"`로 전환**: Next.js 기본 빌드는 실행할 때 전체 `node_modules`가 필요한데, `standalone` 옵션을 켜면 실행에 필요한 최소 의존성만 추려서 `.next/standalone`에 담아줌 — 무료 티어처럼 메모리가 작은 서버에서 이미지 크기/실행 부담을 줄이기 위함. 모노레포라 `outputFileTracingRoot`도 저장소 루트로 명시해야 경로가 꼬이지 않음. (주의: 이 부분은 내 작업 환경에서 arm64/네트워크 제약으로 직접 `next build` 실행 검증을 못 했음 — 로컬이나 CI에서 한 번 확인 필요.)
+- **빌드는 GitHub Actions, VM은 실행만**: `docker-compose.yml`(로컬용, 그 자리에서 빌드)과 별도로 `docker-compose.prod.yml`(배포용, GHCR에서 완성된 이미지를 받아서 실행만)을 분리. 이유: 무료 VM(RAM 1GB)에서 Next.js를 직접 빌드하면 메모리 부족으로 죽을 위험이 큼 — 리소스 넉넉한 GitHub Actions 서버에서 빌드/푸시하고, VM은 `docker compose pull && up -d`만 하도록 역할을 나눔.
+- **`.github/workflows/deploy.yml`**: main에 push되면 ① api/web 이미지를 빌드해서 GHCR(GitHub Container Registry)에 올리고 ② VM에 SSH로 접속해서 최신 이미지를 받아 재기동. 필요한 GitHub Secrets/서버측 `.env` 목록은 워크플로 파일 맨 아래 주석에 정리해둠 — GCP 콘솔 설정 끝난 뒤 값 채워 넣으면 됨.

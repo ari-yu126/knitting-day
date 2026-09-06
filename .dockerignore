@@ -1,0 +1,19 @@
+node_modules
+**/node_modules
+.git
+.gitignore
+.DS_Store
+.vscode
+.cursor
+
+# 빌드 산출물 (Dockerfile 안에서 새로 빌드하므로 호스트에 남아있는 건 필요 없음)
+apps/api/dist
+apps/web/.next
+
+# 비밀값은 절대 이미지에 들어가면 안 됨 — 컨테이너 실행 시 env로 주입
+.env
+.env.local
+.env.*.local
+
+PRESENTATION-NOTES.md
+README.md

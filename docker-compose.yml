@@ -1,3 +1,10 @@
+# 배포 서버(VM)에서 이 파일과 같은 위치에 `.env` 파일을 만들고
+# JWT_SECRET / EMAIL_USER / EMAIL_PASSWORD / NEXT_PUBLIC_API_URL 값을 채워둬야 함.
+# (.env는 git에 안 올라감 — .gitignore 참고)
+#
+# 로컬에서 DB만 필요하면 예전처럼: docker compose up postgres
+# 전체를 다 띄우려면: docker compose up -d --build
+
 services:
   postgres:
     image: postgres:16
@@ -11,6 +18,46 @@ services:
       POSTGRES_DB: knitting_day
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knittingday -d knitting_day"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: knitting-day-api
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      # 컨테이너끼리는 서비스 이름(postgres)으로 서로를 찾음 — localhost 아님
+      DATABASE_URL: postgresql://knittingday:1234@postgres:5432/knitting_day
+      JWT_SECRET: ${JWT_SECRET}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # 브라우저가 직접 호출할 주소라서 postgres처럼 서비스 이름을 못 씀 —
+        # 서버의 공인 IP(또는 도메인)를 넣어야 함. 빌드 시점에 값이 정해지므로
+        # 이 값을 바꾸면 web 이미지를 다시 빌드해야 반영됨.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    container_name: knitting-day-web
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:

@@ -1,10 +1,10 @@
 ////////////// 로그인/회원가입 관련 API
 import { Router } from "express";
-import { query } from "../lib/db";
+import { query } from "../lib/db.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { auth } from "../middleware/jwtAuth";
-import { transporter } from "../lib/mailer";
+import { auth } from "../middleware/jwtAuth.js";
+import { transporter } from "../lib/mailer.js";
 
 const router = Router();
 
@@ -113,7 +113,7 @@ router.post("/send-code", async (req, res) => {
     const code = generateCode();
     console.log(`인증번호(${email}): ${code}`);
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_USER!,
       to: email,
       subject: "뜨개한 날 인증번호",
       text: `뜨개한 날 이메일 인증번호: ${code}`,

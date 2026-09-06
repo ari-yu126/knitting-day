@@ -1,0 +1,57 @@
+# 배포 서버(VM) 전용 compose 파일.
+# 로컬 docker-compose.yml은 이미지를 그 자리에서 빌드하지만, 이 파일은 GitHub Actions가
+# 미리 빌드해서 GHCR(GitHub Container Registry)에 올려둔 완성된 이미지를 "받아서 실행"만
+# 함 — 메모리가 작은 무료 VM에서 무거운 빌드를 안 돌리기 위해서임.
+#
+# 사용법(서버에서):
+#   docker login ghcr.io -u <github-username>          # 최초 1회
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# 같은 폴더에 .env 파일이 있어야 함 (JWT_SECRET / EMAIL_USER / EMAIL_PASSWORD).
+# GitHub Actions가 대신 만들어주는 파일이 아니라, 서버 준비할 때 딱 한 번 직접 만들어두는 값.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: knitting-day-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: knittingday
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: knitting_day
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knittingday -d knitting_day"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: ghcr.io/ari-yu126/knitting-day-api:latest
+    container_name: knitting-day-api
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://knittingday:1234@postgres:5432/knitting_day
+      JWT_SECRET: ${JWT_SECRET}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/ari-yu126/knitting-day-web:latest
+    container_name: knitting-day-web
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
