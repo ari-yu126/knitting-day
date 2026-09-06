@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api, getApiErrorMessage } from "@/lib/api";
 import {
   AlertCircle,
   CheckCircle2,
@@ -20,6 +22,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/stitchday";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,6 +32,11 @@ export default function LoginPage() {
   const [touched, setTouched] = useState({ email: false, password: false });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
+
+  const setAuthToken = useAuthStore((state) => state.setToken);
+  const setAuthEmail = useAuthStore((state) => state.setEmail);
+  const setAuthNickname = useAuthStore((state) => state.setNickname);
+  const setAuthUserId = useAuthStore((state) => state.setUserId);
 
   useEffect(() => {
     if (!toast) return;
@@ -43,18 +52,25 @@ export default function LoginPage() {
     touched.password && password.length < 8 ? "비밀번호는 8자 이상이에요." : "";
   const valid = EMAIL_RE.test(email) && password.length >= 8;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setTouched({ email: true, password: true });
-    if (!valid) return;
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    try {
+      event.preventDefault();
+      setTouched({ email: true, password: true });
+      if (!valid) return;
 
-    setLoading(true);
-    // 백엔드 연결 지점: POST /api/auth/login { email, password } → { token }
-    setTimeout(() => {
+      setLoading(true);
+
+      const response = await api.post(`/auth/login`, { email, password });
+      setAuthToken(response.data.token);
+      setAuthEmail(email);
+      setAuthNickname(response.data.user?.nickname ?? null);
+      setAuthUserId(response.data.user?.id ?? null);
       setLoading(false);
-      setToast("로그인 성공! 토큰이 발급되었어요 🧶");
-      setTimeout(() => router.push("/stitchday"), 900);
-    }, 1100);
+      router.push(redirectTo);
+    } catch (error) {
+      setLoading(false);
+      setToast(getApiErrorMessage(error, "로그인에 실패했어요."));
+    }
   };
 
   return (

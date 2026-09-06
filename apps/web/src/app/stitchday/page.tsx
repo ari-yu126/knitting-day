@@ -1,34 +1,37 @@
 import Link from "next/link";
+import { api } from "@/lib/api";
+import { formatDate } from "@/lib/formatDate";
 import { PenLine } from "lucide-react";
 import { Container } from "@/components/landing/Container";
 import { PostListRow } from "@/components/posts/PostListRow";
 import { PostsPagination } from "@/components/posts/PostsPagination";
-import { cn } from "@/lib/cn";
-import { getPostsPage, type PostSortKey } from "@/data/posts-mock";
-
-const SORT_OPTIONS: { key: PostSortKey; label: string }[] = [
-  { key: "latest", label: "최신순" },
-  { key: "popular", label: "인기순" },
-  { key: "comments", label: "댓글순" },
-];
 
 type PostsPageProps = {
-  searchParams: Promise<{ page?: string; sort?: string }>;
+  searchParams: Promise<{ page?: string }>;
 };
 
-function buildSortHref(sort: PostSortKey) {
-  return sort === "latest" ? "/stitchday" : `/stitchday?sort=${sort}`;
-}
-
 export default async function PostsPage({ searchParams }: PostsPageProps) {
-  const { page: pageParam, sort: sortParam } = await searchParams;
+  const { page: pageParam } = await searchParams;
   const page = pageParam ? Number(pageParam) : 1;
-  const sort: PostSortKey = SORT_OPTIONS.some(
-    (option) => option.key === sortParam,
-  )
-    ? (sortParam as PostSortKey)
-    : "latest";
-  const { posts, pagination } = getPostsPage(page, sort);
+  const response = await api.get(`/posts`, { params: { page } });
+  const mappedPosts = response.data.posts.map((post: any) => ({
+    id: post.id,
+    userId: post.user_id,
+    category: post.category,
+    title: post.title,
+    content: post.content,
+    tags: post.tags,
+    author: post.nickname,
+    likes: post.like_count,
+    commentsCount: post.comment_count,
+    createdAt: formatDate(post.created_at),
+    updatedAt: post.updated_at,
+  }));
+  const pagination = {
+    page: response.data.currentPage,
+    totalPages: response.data.totalPages,
+    total: response.data.totalCount,
+  };
 
   return (
     <div className="py-12 sm:py-16">
@@ -52,31 +55,15 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
           </Link>
         </div>
 
-        <div className="mt-6 flex items-center justify-between border-t-2 border-t-base border-b border-b-beige py-3.5">
+        <div className="border-t-base border-b-beige mt-6 flex items-center justify-between border-t-2 border-b py-3.5">
           <p className="text-gray text-sm">
             총 <span className="text-purple font-bold">{pagination.total}</span>
             개의 글
           </p>
-          <div className="flex gap-1">
-            {SORT_OPTIONS.map((option) => (
-              <Link
-                key={option.key}
-                href={buildSortHref(option.key)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors",
-                  option.key === sort
-                    ? "bg-purple-light text-purple"
-                    : "text-gray-light hover:text-font",
-                )}
-              >
-                {option.label}
-              </Link>
-            ))}
-          </div>
         </div>
 
         <ul className="flex flex-col">
-          {posts.map((post) => (
+          {mappedPosts.map((post: any) => (
             <li key={post.id} className="border-beige border-b">
               <PostListRow post={post} />
             </li>
@@ -86,7 +73,6 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         <PostsPagination
           page={pagination.page}
           totalPages={pagination.totalPages}
-          sort={sort}
         />
       </Container>
     </div>

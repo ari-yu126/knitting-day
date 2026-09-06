@@ -1,36 +1,117 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, LogOut, Mail, MessageCircle, Pencil } from "lucide-react";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
 import { Container } from "@/components/landing/Container";
-import { getPostById } from "@/data/posts-mock";
-
-// 로그인 사용자 정보 (백엔드 연결 지점) — JWT 토큰으로 GET /api/users/me → { email, nickname, createdAt }
-const USER = {
-  nickname: "햇양님",
-  email: "hello@knit.com",
-  since: "2026.03.14",
-};
+import { useAuthStore } from "@/store/useAuthStore";
+import { api, getApiErrorMessage } from "@/lib/api";
+import { formatDate } from "@/lib/formatDate";
 
 const SCRAP_COUNT = 12;
 
-// 내가 쓴 글 (백엔드 연결 지점) — GET /api/users/me/posts
-const MY_POST_IDS = [1, 3, 6];
+type MyProfile = {
+  nickname: string;
+  email: string;
+  since: string;
+};
+
+type MyPost = {
+  id: number;
+  category: string;
+  title: string;
+  createdAt: string;
+  likes: number;
+  commentsCount: number;
+};
 
 export default function MyPage() {
   const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
+  const token = useAuthStore((state) => state.token);
+  const [mounted, setMounted] = useState(false);
+  const [profile, setProfile] = useState<MyProfile | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [myPosts, setMyPosts] = useState<MyPost[]>([]);
 
-  const myPosts = MY_POST_IDS.map((id) => getPostById(id)).filter(
-    (post): post is NonNullable<typeof post> => Boolean(post),
-  );
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (!token) {
+      router.push("/login?redirect=/mypage");
+      return;
+    }
+
+    const loadProfile = async () => {
+      try {
+        const response = await api.get("/users/me");
+        const user = response.data.user;
+        setProfile({
+          nickname: user.nickname,
+          email: user.email,
+          since: formatDate(user.created_at),
+        });
+
+        // 내가 쓴 글 — 방금 확인한 내 userId로 게시글 목록을 필터링해서 조회
+        const postsResponse = await api.get("/posts", {
+          params: { userId: user.id },
+        });
+        setMyPosts(
+          postsResponse.data.posts.map((post: any) => ({
+            id: post.id,
+            category: post.category,
+            title: post.title,
+            createdAt: formatDate(post.created_at),
+            likes: post.like_count,
+            commentsCount: post.comment_count,
+          })),
+        );
+      } catch (error) {
+        console.error(error);
+        setLoadError(
+          getApiErrorMessage(error, "내 정보를 불러오지 못했어요."),
+        );
+      }
+    };
+    loadProfile();
+  }, [mounted, token, router]);
+
   const totalLikes = myPosts.reduce((sum, post) => sum + post.likes, 0);
 
   const handleLogout = () => {
-    // 로그아웃 (백엔드 연결 지점) — localStorage.removeItem('token') 또는 POST /api/auth/logout
+    logout();
     router.push("/login");
   };
+
+  if (!mounted || !token || (!profile && !loadError)) {
+    return (
+      <div className="text-font flex min-h-screen flex-1 flex-col font-sans">
+        <Header />
+        <main className="flex-1 py-20 text-center text-sm text-gray-light">
+          불러오는 중...
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (loadError || !profile) {
+    return (
+      <div className="text-font flex min-h-screen flex-1 flex-col font-sans">
+        <Header />
+        <main className="flex-1 py-20 text-center text-sm text-red-600">
+          {loadError}
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="text-font flex min-h-screen flex-1 flex-col font-sans">
@@ -39,17 +120,17 @@ export default function MyPage() {
         <Container>
           <section className="flex items-center gap-5.5 py-12 sm:py-14">
             <div className="flex h-20 w-20 flex-none items-center justify-center rounded-full bg-purple text-3xl font-extrabold text-white shadow-lg sm:h-21 sm:w-21">
-              {USER.nickname.slice(0, 1)}
+              {profile.nickname.slice(0, 1)}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xl font-extrabold tracking-tight text-font sm:text-2xl">
-                {USER.nickname}
+                {profile.nickname}
               </p>
               <p className="mt-1.5 flex items-center gap-1.5 text-sm text-gray">
                 <Mail className="h-3.5 w-3.5 text-gray-light" aria-hidden />
-                {USER.email}
+                {profile.email}
               </p>
-              <p className="mt-0.5 text-xs text-gray-light">가입일 · {USER.since}</p>
+              <p className="mt-0.5 text-xs text-gray-light">가입일 · {profile.since}</p>
             </div>
             <button
               type="button"

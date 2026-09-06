@@ -14,10 +14,10 @@ import {
 } from "lucide-react";
 import { AuthAside, type AuthStep } from "@/features/auth/components/AuthAside";
 import { cn } from "@/lib/cn";
+import { api, getApiErrorMessage } from "@/lib/api";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** 데모용 — 백엔드 중복검사 대체 */
-const TAKEN_EMAILS = ["test@knit.com", "admin@knit.com"];
 const DEMO_CODE = "123456";
 const CODE_LENGTH = 6;
 
@@ -70,10 +70,11 @@ export default function SignupPage() {
 
   // section 3 — profile
   const [nickname, setNickname] = useState("");
-  const [agreeTos, setAgreeTos] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -81,26 +82,45 @@ export default function SignupPage() {
     return () => clearTimeout(t);
   }, [timer]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   // 백엔드 연결 지점: GET /api/auth/check-email?email=... → { available }
-  const checkEmail = () => {
+  const checkEmail = async () => {
     if (!EMAIL_RE.test(email)) {
       setEmailState("invalid");
       return;
     }
     setEmailState("checking");
-    setTimeout(() => {
-      setEmailState(
-        TAKEN_EMAILS.includes(email.toLowerCase()) ? "taken" : "ok",
-      );
-    }, 800);
+    try {
+      const res = await api.get(`/auth/check-email?email=${email}`);
+      const available = res.data.available;
+      if (available) {
+        setEmailState("ok");
+      } else {
+        setEmailState("taken");
+      }
+    } catch (error) {
+      console.error(error);
+      setEmailState("taken");
+    }
   };
 
   // 백엔드 연결 지점: POST /api/auth/send-code { email }
-  const sendCode = () => {
-    setCodeSent(true);
-    setTimer(180);
-    setCodeError("");
-    setCode(Array(CODE_LENGTH).fill(""));
+  const sendCode = async () => {
+    try {
+      await api.post(`/auth/send-code`, { email });
+      setCodeSent(true);
+      setTimer(180);
+      setCodeError("");
+      setCode(Array(CODE_LENGTH).fill(""));
+    } catch (error) {
+      console.error(error);
+      setCodeError("인증코드 전송에 실패했어요.");
+    }
   };
 
   const handleCodeChange = (index: number, value: string) => {
@@ -113,16 +133,19 @@ export default function SignupPage() {
     }
   };
 
-  const codeValue = code.join("");
-
   // 백엔드 연결 지점: POST /api/auth/verify-code { email, code }
-  const verifyCode = () => {
-    if (codeValue.length < CODE_LENGTH) return;
-    if (codeValue === DEMO_CODE) {
+  const codeValue = code.join("");
+  const verifyCode = async () => {
+    try {
+      await api.post(`/auth/verify-code`, {
+        email,
+        verification_code: codeValue,
+      });
       setVerified(true);
       setCodeError("");
-    } else {
-      setCodeError(`인증코드가 일치하지 않아요. (데모코드: ${DEMO_CODE})`);
+    } catch (error) {
+      console.error(error);
+      setCodeError("인증코드가 일치하지 않아요.");
     }
   };
 
@@ -141,19 +164,32 @@ export default function SignupPage() {
   const section1Valid = emailState === "ok" && verified;
   const section2Valid =
     passwordScore >= 3 && passwordChecks.length && passwordsMatch;
-  const section3Valid = nickname.trim().length >= 2 && agreeTos && agreePrivacy;
+  const section3Valid =
+    nickname.trim().length >= 2 && agreeTerms && agreePrivacy;
   const allValid = section1Valid && section2Valid && section3Valid;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!allValid) return;
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    try {
+      event.preventDefault();
+      if (!allValid) return;
 
-    setSubmitting(true);
-    // 백엔드 연결 지점: POST /api/auth/signup { email, password, nickname, marketing }
-    setTimeout(() => {
+      setSubmitting(true);
+      // 백엔드 연결 지점: POST /api/auth/signup { email, password, nickname, marketing }
+      await api.post(`/auth/signup`, {
+        email,
+        password,
+        nickname,
+        agree_terms: agreeTerms,
+        agree_privacy: agreePrivacy,
+        agree_marketing: agreeMarketing,
+      });
       setSubmitting(false);
       setDone(true);
-    }, 1100);
+    } catch (error) {
+      console.error(error);
+      setSubmitting(false);
+      setToast(getApiErrorMessage(error, "회원가입에 실패했어요. 다시 시도해 주세요."));
+    }
   };
 
   const steps: AuthStep[] = [
@@ -531,8 +567,8 @@ export default function SignupPage() {
                 <label className="text-gray flex items-start gap-2.5 text-sm">
                   <input
                     type="checkbox"
-                    checked={agreeTos}
-                    onChange={(event) => setAgreeTos(event.target.checked)}
+                    checked={agreeTerms}
+                    onChange={(event) => setAgreeTerms(event.target.checked)}
                     className="border-beige text-purple focus:ring-purple-light mt-0.5 h-4 w-4 rounded"
                   />
                   <span>
@@ -604,6 +640,18 @@ export default function SignupPage() {
           </form>
         )}
       </main>
+
+      <div
+        className={cn(
+          "bg-font fixed bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl px-5.5 py-3.5 text-sm font-semibold text-white shadow-lg transition-all",
+          toast
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-3 opacity-0",
+        )}
+      >
+        <AlertCircle className="h-4 w-4" aria-hidden />
+        {toast}
+      </div>
     </div>
   );
 }

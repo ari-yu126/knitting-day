@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, useCallback, useEffect, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { UserRound, UsersRound, Menu, X, Search } from "lucide-react";
-import { MOCK_IS_LOGGED_IN, NAV_LINKS } from "@/data/landing-mock";
+import { NAV_LINKS } from "@/data/landing-mock";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/store/useAuthStore";
 import { SearchBar } from "./SearchBar";
 import { SearchPanel } from "./SearchPanel";
 import { Alarm } from "./AlarmIcon";
@@ -71,6 +74,24 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const portalTarget = typeof document !== "undefined" ? document.body : null;
+  const [mounted, setMounted] = useState(false);
+  const hasToken = useAuthStore((state) => Boolean(state.token));
+  const isLoggedIn = mounted && hasToken;
+  const pathname = usePathname();
+  const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // 새로고침 등으로 localStorage에서 토큰을 복원했을 때, 그 토큰이 아직도
+    // 서버 기준으로 유효한지 실제로 확인한다 (그냥 "토큰이 있다"만으로 로그인 상태를 믿지 않음).
+    // 만료/위조된 토큰이면 서버가 401을 주고, api.ts의 공통 401 처리가 로그아웃시켜서
+    // hasToken이 false가 되고 이 컴포넌트도 자동으로 로그아웃 상태로 다시 렌더링된다.
+    if (!mounted || !hasToken) return;
+    api.get("/users/me").catch(() => {});
+  }, [mounted, hasToken]);
 
   const closeMobileMenu = useCallback(() => {
     setMobileOpen(false);
@@ -123,7 +144,7 @@ export function Header() {
           <div className="absolute right-0 hidden items-center gap-4 md:flex">
             <SearchBar onClick={openSearch} />
             <Alarm />
-            {MOCK_IS_LOGGED_IN ? (
+            {isLoggedIn ? (
               <Link
                 href="/mypage"
                 aria-label="내 프로필 이동"
@@ -134,8 +155,8 @@ export function Header() {
               </Link>
             ) : (
               <Link
-                href="/login"
-                className="from-purple to-purple-light text-beige-light rounded-2xl bg-linear-to-r px-5 py-2.5 text-sm font-semibold transition-all hover:-translate-y-0.5 hover:opacity-95"
+                href={loginHref}
+                className="bg-purple text-beige-light rounded-2xl bg-linear-to-r px-5 py-2.5 text-sm font-semibold transition-all hover:-translate-y-0.5 hover:opacity-95"
               >
                 LOGIN
               </Link>
@@ -214,7 +235,7 @@ export function Header() {
               <div className="flex items-center gap-3">
                 <Alarm />
               </div>
-              {MOCK_IS_LOGGED_IN ? (
+              {isLoggedIn ? (
                 <Link
                   href="/mypage"
                   aria-label="내 프로필 이동"
@@ -227,7 +248,7 @@ export function Header() {
                 </Link>
               ) : (
                 <Link
-                  href="/login"
+                  href={loginHref}
                   className="from-purple to-purple-light text-beige-light inline-flex justify-center rounded-2xl bg-linear-to-r px-5 py-2.5 text-sm font-semibold"
                   onClick={closeMobileMenu}
                 >

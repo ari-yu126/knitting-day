@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobilePagePicker } from "@/components/posts/MobilePagePicker";
-import type { PostSortKey } from "@/data/posts-mock";
 
 const TABLET_PC_PAGE_BLOCK_SIZE = 10;
 
@@ -17,13 +16,10 @@ const navControlClass =
 type PostsPaginationProps = {
   page: number;
   totalPages: number;
-  sort?: PostSortKey;
 };
 
-function buildPageHref(page: number, sort?: PostSortKey) {
-  return sort && sort !== "latest"
-    ? `/stitchday?page=${page}&sort=${sort}`
-    : `/stitchday?page=${page}`;
+function buildPageHref(page: number) {
+  return `/stitchday?page=${page}`;
 }
 
 function getVisiblePageNumbers(
@@ -43,11 +39,9 @@ function getVisiblePageNumbers(
 function PageNumberLinks({
   pageNumbers,
   currentPage,
-  sort,
 }: {
   pageNumbers: number[];
   currentPage: number;
-  sort?: PostSortKey;
 }) {
   return (
     <>
@@ -57,7 +51,7 @@ function PageNumberLinks({
         return (
           <Link
             key={pageNumber}
-            href={buildPageHref(pageNumber, sort)}
+            href={buildPageHref(pageNumber)}
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "hover:bg-purple-light inline-flex h-9 min-w-9 items-center justify-center rounded-md px-2 text-sm font-medium transition-all",
@@ -77,7 +71,6 @@ function PageNumberLinks({
 export function PostsPagination({
   page,
   totalPages,
-  sort,
 }: PostsPaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -96,7 +89,7 @@ export function PostsPagination({
     >
       {page > 1 ? (
         <Link
-          href={buildPageHref(1, sort)}
+          href={buildPageHref(1)}
           aria-label="첫 페이지"
           className={navControlClass}
         >
@@ -106,7 +99,7 @@ export function PostsPagination({
 
       {prevPage ? (
         <Link
-          href={buildPageHref(prevPage, sort)}
+          href={buildPageHref(prevPage)}
           aria-label="이전 페이지"
           className={navControlClass}
         >
@@ -115,19 +108,18 @@ export function PostsPagination({
       ) : null}
 
       <div className="md:hidden">
-        <MobilePagePicker page={page} totalPages={totalPages} sort={sort} />
+        <MobilePagePicker page={page} totalPages={totalPages} />
       </div>
       <div className="hidden flex-wrap items-center justify-center gap-2 md:flex md:gap-1">
         <PageNumberLinks
           pageNumbers={tabletPcPageNumbers}
           currentPage={page}
-          sort={sort}
         />
       </div>
 
       {nextPage ? (
         <Link
-          href={buildPageHref(nextPage, sort)}
+          href={buildPageHref(nextPage)}
           aria-label="다음 페이지"
           className={navControlClass}
         >
@@ -137,7 +129,7 @@ export function PostsPagination({
 
       {page < totalPages ? (
         <Link
-          href={buildPageHref(totalPages, sort)}
+          href={buildPageHref(totalPages)}
           aria-label="마지막 페이지"
           className={navControlClass}
         >

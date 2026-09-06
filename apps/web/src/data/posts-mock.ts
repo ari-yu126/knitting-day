@@ -83,13 +83,15 @@ const BASE_MOCK_POSTS: PostDetail[] = [
         id: 3,
         author: "실뜨는고양이",
         createdAt: "4시간 전",
-        content: "스워치 뜰 때보다 본 뜨기가 더 쫀해지는 경우 많아요. 한 호수 키워보세요.",
+        content:
+          "스워치 뜰 때보다 본 뜨기가 더 쫀해지는 경우 많아요. 한 호수 키워보세요.",
       },
       {
         id: 4,
         author: "게이지박사",
         createdAt: "3시간 전",
-        content: "머리둘레 cm 재서 (머리둘레 × 도안코수) ÷ 도안둘레 로 대략 코 수 계산해보세요.",
+        content:
+          "머리둘레 cm 재서 (머리둘레 × 도안코수) ÷ 도안둘레 로 대략 코 수 계산해보세요.",
       },
     ],
   },
@@ -111,7 +113,8 @@ const BASE_MOCK_POSTS: PostDetail[] = [
         id: 5,
         author: "yarnlover",
         createdAt: "어제",
-        content: "라벤더 포인트 줄이 분위기 살려주네요. 실 브랜드도 알려주실 수 있나요?",
+        content:
+          "라벤더 포인트 줄이 분위기 살려주네요. 실 브랜드도 알려주실 수 있나요?",
       },
     ],
   },
@@ -132,7 +135,8 @@ const BASE_MOCK_POSTS: PostDetail[] = [
         id: 6,
         author: "Frida",
         createdAt: "12시간 전",
-        content: "코 주울 때 한 코 덜 줄이고 다음 단에서 보충하는 방법 써봤어요.",
+        content:
+          "코 주울 때 한 코 덜 줄이고 다음 단에서 보충하는 방법 써봤어요.",
       },
     ],
   },
@@ -255,8 +259,7 @@ export function getPostsPage(
 
 function toPreviewListItem(post: PostDetail): PostListItem {
   const plain = post.content.replace(/\s+/g, " ").trim();
-  const excerpt =
-    plain.length > 72 ? `${plain.slice(0, 72)}…` : plain;
+  const excerpt = plain.length > 72 ? `${plain.slice(0, 72)}…` : plain;
 
   return {
     ...toListItem(post),
@@ -265,6 +268,7 @@ function toPreviewListItem(post: PostDetail): PostListItem {
 }
 
 /** Landing section preview (swiper: 3 slides per group on desktop) */
-export const COMMUNITY_PREVIEW_POSTS: PostListItem[] = MOCK_POSTS.slice(0, 9).map(
-  toPreviewListItem,
-);
+export const COMMUNITY_PREVIEW_POSTS: PostListItem[] = MOCK_POSTS.slice(
+  0,
+  9,
+).map(toPreviewListItem);

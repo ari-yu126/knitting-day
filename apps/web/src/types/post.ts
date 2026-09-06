@@ -19,6 +19,8 @@ export type PostListItem = {
 
 export type PostComment = {
   id: number;
+  /** Present when loaded from API — used for ownership checks */
+  userId?: number;
   author: string;
   createdAt: string;
   content: string;

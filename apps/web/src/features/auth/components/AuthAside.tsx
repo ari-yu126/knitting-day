@@ -40,7 +40,7 @@ export function AuthAside({
       />
 
       <Link
-        href="/stitchday"
+        href="/"
         className="relative z-10 flex flex-col leading-none"
       >
         <b className="text-xl font-extrabold tracking-tight">뜨개한 날</b>
