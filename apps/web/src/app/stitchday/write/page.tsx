@@ -87,12 +87,19 @@ export default function PostWritePage() {
     if (!canSubmit) return;
     setSubmitting(true);
     setSubmitError("");
+    // 태그 입력창에 글자를 쳐놓고 엔터를 안 누른 채로 등록하면 그 태그가 그냥 사라지던 문제 —
+    // 등록 직전에 남아있는 입력값도 태그로 포함시켜서 보냄
+    const draftTag = tagDraft.trim().replace(/^#/, "");
+    const finalTags =
+      draftTag && !tags.includes(draftTag) && tags.length < MAX_TAGS
+        ? [...tags, draftTag]
+        : tags;
     try {
       await api.post("/posts", {
         title,
         content,
         category,
-        tags,
+        tags: finalTags,
       });
       router.push("/stitchday");
     } catch (error) {

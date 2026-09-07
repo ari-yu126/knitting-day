@@ -96,15 +96,17 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
   return (
     <div className="py-10 sm:py-14">
       <Container className="max-w-3xl">
-        <Link
-          href="/stitchday"
-          className="text-gray-light hover:text-purple mb-7 inline-flex items-center gap-2 text-sm font-semibold transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          목록으로
-        </Link>
+        <div className="mb-7 flex items-center justify-between">
+          <Link
+            href="/stitchday"
+            className="text-gray-light hover:text-purple inline-flex items-center gap-2 text-sm font-semibold transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            목록으로
+          </Link>
 
-        <PostOwnerActions postId={postId} postUserId={postUserId} />
+          <PostOwnerActions postId={postId} postUserId={postUserId} />
+        </div>
 
         {category && (
           <span className="bg-purple-light text-purple inline-block rounded-full px-3 py-1.5 text-xs font-bold">

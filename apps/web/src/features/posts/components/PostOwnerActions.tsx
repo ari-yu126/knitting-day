@@ -48,7 +48,7 @@ export function PostOwnerActions({
   };
 
   return (
-    <div className="mb-6 flex flex-col items-end gap-2">
+    <div className="flex flex-col items-end gap-2">
       <div className="flex gap-2">
         <button
           type="button"

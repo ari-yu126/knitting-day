@@ -17,8 +17,6 @@ import { cn } from "@/lib/cn";
 import { api, getApiErrorMessage } from "@/lib/api";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-/** 데모용 — 백엔드 중복검사 대체 */
-const DEMO_CODE = "123456";
 const CODE_LENGTH = 6;
 
 type EmailState = "idle" | "checking" | "ok" | "taken" | "invalid" | "error";

@@ -464,20 +464,27 @@ router.get("/:postId", async (req, res) => {
 
     const post = postResult.rows[0];
 
-    // Adjacent posts by created_at (not id ± 1 — IDs can have gaps)
+    // Adjacent posts by created_at (not id ± 1 — IDs can have gaps).
+    // 비교 기준 시각을 (post.created_at처럼) JS Date로 한 번 꺼냈다가 다시 파라미터로 넣으면
+    // Postgres의 마이크로초 정밀도가 JS Date의 밀리초 정밀도로 잘려서, 자기 자신의 created_at이
+    // "자기보다 크다"고 잘못 판정되는 버그가 있었음 (실제로 2개 글로 테스트하니 다음글에 항상
+    // 자기 자신이 나오는 문제로 나타남). 서브쿼리로 DB 안에서만 비교해서 정밀도 손실을 없애고,
+    // id != $1로 한 번 더 자기 자신을 걸러냄.
     const prevResult = await query(
       `SELECT id, title FROM posts
-       WHERE created_at < $1
+       WHERE created_at < (SELECT created_at FROM posts WHERE id = $1)
+         AND id != $1
        ORDER BY created_at DESC
        LIMIT 1`,
-      [post.created_at],
+      [postId],
     );
     const nextResult = await query(
       `SELECT id, title FROM posts
-       WHERE created_at > $1
+       WHERE created_at > (SELECT created_at FROM posts WHERE id = $1)
+         AND id != $1
        ORDER BY created_at ASC
        LIMIT 1`,
-      [post.created_at],
+      [postId],
     );
 
     // 4. 게시글 반환
