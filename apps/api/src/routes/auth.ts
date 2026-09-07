@@ -1,16 +1,15 @@
 ////////////// 로그인/회원가입 관련 API
 import { Router } from "express";
-import { query } from "../lib/db";
+import { query } from "../lib/db.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { auth } from "../middleware/jwtAuth";
-import { transporter } from "../lib/mailer";
+import { transporter } from "../lib/mailer.js";
 
 const router = Router();
 
 /**
  * @swagger
- * /check-email:
+ * /auth/check-email:
  *   get:
  *     tags:
  *       - Auth
@@ -57,7 +56,7 @@ router.get("/check-email", async (req, res) => {
 
 /**
  * @swagger
- * /send-code:
+ * /auth/send-code:
  *   post:
  *     tags:
  *       - Auth
@@ -113,7 +112,7 @@ router.post("/send-code", async (req, res) => {
     const code = generateCode();
     console.log(`인증번호(${email}): ${code}`);
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: process.env.EMAIL_USER!,
       to: email,
       subject: "뜨개한 날 인증번호",
       text: `뜨개한 날 이메일 인증번호: ${code}`,
@@ -138,7 +137,7 @@ router.post("/send-code", async (req, res) => {
 
 /**
  * @swagger
- * /verify-code:
+ * /auth/verify-code:
  *   post:
  *     tags:
  *       - Auth
@@ -219,7 +218,7 @@ router.post("/verify-code", async (req, res) => {
 
 /**
  * @swagger
- * /signup:
+ * /auth/signup:
  *   post:
  *     tags:
  *       - Auth
@@ -328,7 +327,7 @@ router.post("/signup", async (req, res) => {
 
 /**
  * @swagger
- * /login:
+ * /auth/login:
  *   post:
  *     tags:
  *       - Auth
@@ -354,6 +353,25 @@ router.post("/signup", async (req, res) => {
  *     responses:
  *       200:
  *         description: 로그인 완료
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 token:
+ *                   type: string
+ *                   description: 이후 요청의 Authorization 헤더에 실어 보낼 JWT
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     email:
+ *                       type: string
+ *                     nickname:
+ *                       type: string
  *       400:
  *         description: 이메일이나 비밀번호 불일치
  *       500:

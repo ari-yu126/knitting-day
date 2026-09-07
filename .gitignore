@@ -4,3 +4,11 @@ node_modules
 .env.local
 .env.*.local
 .DS_Store
+apps/api/dist
+apps/api/src/**/*.js
+apps/api/src/**/*.js.map
+apps/api/src/**/*.d.ts
+apps/api/src/**/*.d.ts.map
+# src/types/*.d.ts는 tsc가 만든 게 아니라 직접 작성한 타입 선언 파일이라 예외 처리
+!apps/api/src/types/*.d.ts
+apps/web/.next

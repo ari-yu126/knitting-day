@@ -1,7 +1,7 @@
 ////////////// 사용자(마이페이지) 관련 API
 import { Router } from "express";
-import { query } from "../lib/db";
-import { auth } from "../middleware/jwtAuth";
+import { query } from "../lib/db.js";
+import { auth } from "../middleware/jwtAuth.js";
 const router = Router();
 
 /**

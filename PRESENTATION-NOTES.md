@@ -11,24 +11,80 @@
 
 - Backend(Node.js/Express) ✅ / DB(PostgreSQL) ✅ / API(REST) ✅ / Frontend(Next.js·TypeScript) ✅ — 필수 표시된 4개 전부 충족.
 - Swagger ✅ — 필수 표시는 없었지만 처음부터 구현.
-- Cloud Server / Docker(앱 컨테이너화) / GitHub Actions 자동배포 ❌ — 아직 미착수. (지금은 `docker-compose.yml`에 Postgres만 컨테이너로 띄우고, api/web은 로컬에서 직접 실행 중.) 원래 항목 설명에도 필수 표시가 없는 선택 영역.
+- Cloud / Docker / GitHub Actions — 코드·파이프라인은 `cloud-test`에 준비됨(Dockerfile, `docker-compose.prod.yml`, Actions). GCP VM·Secrets 연동 후 실제 배포 검증은 진행 중/잔여. 로컬은 여전히 Postgres Docker + api/web 직접 실행이 기본.
 
-### 주요 로직 (필수 구현) — 전부 완료
+### 주요 로직 (필수 구현) — 전부 완료 ✅
 
-- 로그인 ✅ — JWT 발급, 인증이 필요한 모든 API가 `auth` 미들웨어로 보호됨.
-- 회원가입 ✅ — 이메일 중복검사·이메일 인증(실제 발송)·bcrypt 암호화·사용자 정보 저장 전부 연결.
-- 게시판 ✅ — 로그인 사용자만 작성 가능, 본인 글만 수정/삭제 가능(403), 작성/목록조회/상세조회/수정/삭제 프론트-백엔드 전부 연결.
-- 댓글 ✅ — 로그인 사용자만 작성 가능, 본인 댓글만 삭제 가능(403), 작성/조회/삭제 전부 연결.
-- 페이징 ✅ — 게시글 목록 조회 시 서버 `LIMIT/OFFSET` + 프론트 페이지네이션 UI 연결.
+아래는 평가 체크리스트 기준으로 **무엇을/어떻게 구현했는지**다.  
+(“왜 이렇게 설계했는지” 깊은 설명은 그 아래 섹션 — 인증 JWT, DB, 프론트 상태관리 등 — 참고.)
+
+#### 로그인
+
+사용자는 이메일과 비밀번호로 로그인할 수 있어야 한다.
+
+- **JWT 기반 인증** (세션 쿠키가 아니라, 토큰을 클라이언트가 들고 다니는 방식)
+  1. 로그인 성공 → 서버가 JWT 발급 (`userId`, `email`, 만료 3시간)
+  2. 프론트가 토큰을 `useAuthStore`(+ localStorage)에 저장하고, API 요청마다 `Authorization: Bearer <token>`으로 전달
+  3. 보호 API는 `auth` 미들웨어(`jwt.verify`)로 토큰 검증 후 `req.user`에 담아 진행
+  4. 없거나 만료/위조면 **401**, 프론트 response interceptor가 로그아웃 처리
+- **로그인 성공 시 토큰 발급**
+  - `POST /auth/login`에서 이메일·비밀번호 확인(`bcrypt.compare`) 후 `jwt.sign` → 응답 `token` + `user`
+  - 프론트는 `response.data.token`을 `setToken`으로 저장
+- **인증이 필요한 API 보호**
+  - `auth` 미들웨어: 토큰 없거나 검증 실패 시 즉시 401 (본문 로직 진입 전)
+  - 수정/삭제는 로그인뿐 아니라 **본인 글/댓글인지** 서버에서 한 번 더 확인 (아니면 403)
+
+| 보호됨 (`auth`) | 공개 |
+| --- | --- |
+| 게시글 작성/수정/삭제 | 게시글 목록/상세 |
+| 좋아요 추가/취소 | 댓글 목록 |
+| 댓글 작성/수정/삭제 | 로그인·회원가입·이메일 관련 |
+| `GET /users/me` | |
+
+#### 회원가입
+
+사용자가 계정을 생성할 수 있어야 한다.
+
+- **이메일 중복 검사**: 프론트 버튼 → `GET /auth/check-email?email=...` → 서버가 `users` 조회 후 `{ available }` → UI `ok` / `taken`
+- **이메일 인증**
+  1. `POST /auth/send-code` — 6자리 코드 생성 → `email_verifications` 저장 → 메일 발송 (3분 만료)
+  2. `POST /auth/verify-code` — 코드·만료 검증 → `verified_at` 기록
+  3. `POST /auth/signup` 때도 서버가 인증 완료 여부를 다시 확인 (프론트 `verified`만 믿지 않음)
+- **비밀번호 암호화**: `bcrypt.hash(password, 10)` 저장 / 로그인 시 `bcrypt.compare` (평문 미저장)
+- **기본 사용자 정보 저장** (인증 끝난 뒤에만 INSERT): `email`, `password`(해시), `nickname`, `is_email_verified`, `agree_terms` / `agree_privacy` / `agree_marketing`
+
+#### 게시판
+
+로그인한 사용자만 작성 가능. 본인 글만 수정/삭제 가능.
+
+- **작성** — `POST /posts` + `auth` / 프론트 `/stitchday/write`(토큰 없으면 로그인) / JWT `userId`로 INSERT
+- **목록** — `GET /posts?page=1` 공개 / 페이지당 10개 / `users` JOIN + `LIMIT/OFFSET` / `?userId=`면 마이페이지 “내가 쓴 글”
+- **상세** — `GET /posts/:postId` 공개 / 없으면 404 / 이전·다음 글은 `created_at` 기준(아이디 ±1 아님)
+- **수정** — `PUT /posts/:postId` + `auth` → 존재 확인 → `user_id === JWT.userId` 아니면 403 → UPDATE / 프론트 `/stitchday/[id]/edit`
+- **삭제** — `DELETE /posts/:postId` + `auth` / 본인 확인 후 DELETE / 프론트 `PostOwnerActions`
+
+#### 댓글
+
+로그인 사용자만 작성. 본인 댓글만 삭제 가능. (수정 API는 백엔드에 있으나, 필수 UI는 작성·조회·삭제)
+
+- **작성** — `POST /posts/:postId/comments` + `auth` → INSERT → `posts.comment_count` +1 / 비로그인은 입력창 대신 로그인 안내
+- **조회** — `GET /posts/:postId/comments` 공개 / `comments`+`users` JOIN / 작성·삭제 후 목록 재조회
+- **삭제** — `DELETE /comments/:commentId` + `auth` → 본인 아니면 403 → DELETE → `comment_count` -1 / `userId`로 본인 판별 후 삭제 버튼 노출
+
+#### 페이징
+
+- **서버 효율 조회**: `page`만 받음 → 페이지당 10개 `LIMIT`+`OFFSET` → `COUNT(*)`로 `totalPages` → `{ posts, currentPage, totalPages, totalCount }`
+- **UI**: `/stitchday?page=N` URL 유지 / `PostsPagination`(PC 10개 블록·모바일 피커) / 총 글 수 표시
 
 ### 추가 구현 (선택)
 
-- 좋아요 기능 ✅ 구현 완료. 게시글 검색 ❌, 파일 업로드 ❌, 프로필 수정 ❌ — 미구현(선택 사항이라 의도적으로 스킵).
+- 좋아요 ✅ (`POST`/`DELETE /posts/:postId/like`). 검색 ❌, 파일 업로드 ❌, 프로필 수정 ❌ — 선택이라 의도적 스킵.
+- 마이페이지: `GET /users/me` ✅, 내 글은 `GET /posts?userId=` ✅. `/users/me/posts`·비밀번호 변경·내 댓글 API는 **없음**(추후).
 
-### 배포 계획 (진행 예정)
+### 배포 계획
 
-- 구조: GCE(Compute Engine) VM 한 대 + Docker Compose로 db/api/web 세 컨테이너를 한 곳에서 실행. 이미지 빌드는 GitHub Actions(무료 러너)에서 하고, VM은 완성된 이미지를 받아서 실행만 담당 — 무료 티어 VM(RAM 1GB)의 빌드 부담을 줄이기 위한 선택.
-- 일정: 코드 쪽(Dockerfile 2개, compose 확장, Actions workflow)은 제출 전날 밤 미리 준비. 실제 GCP 콘솔 설정(프로젝트/VM/방화벽/시크릿 등록)과 첫 배포는 제출 당일 진행 — 막히면 배포는 포기하고 로컬 시연으로 전환(필수 기능은 이미 완료된 상태라 제출 자체엔 지장 없음).
+- 구조: GCE VM + Docker Compose(db/api/web). 이미지 빌드는 GitHub Actions → GHCR, VM은 pull/실행만 (`docker-compose.prod.yml`).
+- 브랜치 `cloud-test`에 Dockerfile·Actions 파이프라인 커밋/푸시까지 완료. GCP VM·GitHub Secrets 등록 후 실제 배포 검증 남음. 막히면 로컬 시연으로 전환 가능(필수 로직은 완료).
 
 ---
 
@@ -176,3 +232,15 @@
 
 - **문제**: 로그인 페이지는 실패 시 하단 토스트로 실제 에러 메시지를 보여주는데, 회원가입 최종 제출(`POST /auth/signup`)이 실패하면 `console.error`만 찍고 화면엔 아무 피드백이 없었음.
 - **해결**: 로그인 페이지와 동일한 토스트 UI(하단 고정, 2.6초 후 자동 소멸) + 타이머 패턴을 회원가입 페이지에도 그대로 적용, `getApiErrorMessage`로 백엔드가 보낸 실제 실패 사유를 노출.
+
+---
+
+## 배포 준비 (Docker / GitHub Actions)
+
+- **api 빌드가 원래 깨져 있던 이유**: `tsconfig.json`의 `module: "nodenext"`는 상대경로 import에 `.js` 확장자를 강제하는데(컴파일 결과물 기준 확장자), 실제 코드는 확장자 없이 작성돼 있었음. 개발 중엔 `tsx`가 이걸 알아서 처리해줘서 안 드러났지만, `tsc`로 진짜 빌드하면 에러남 — 모든 상대경로 import에 `.js`를 붙여서 해결(`../lib/db` → `../lib/db.js`). `@types/pg`, `@types/jsonwebtoken`도 없어서 추가 설치.
+- **`outDir` 미설정 문제**: `tsconfig.json`에 `rootDir`/`outDir`이 주석 처리돼 있어서 빌드 결과물이 `dist/`가 아니라 `src/` 안에 소스랑 섞여서 생성되고 있었음. 두 값을 채워서 `dist/`로 정리되게 고침.
+- **`npm run build`(`tsc`)까지 통과 + `node dist/server.js` 실행까지 확인 완료** — 이게 안 되면 Docker 이미지 자체가 안 만들어짐.
+- **모노레포 Dockerfile 구조**: npm workspaces(`apps/*`)라서 Dockerfile의 빌드 컨텍스트는 항상 저장소 루트. api/web 두 워크스페이스의 `package.json`만 먼저 복사해서 `npm ci`로 의존성을 설치(레이어 캐시에도 유리, web 소스 전체는 필요 없음) → 그 다음 해당 앱 소스만 복사해서 빌드하는 멀티스테이지 구조.
+- **web은 `output: "standalone"`로 전환**: Next.js 기본 빌드는 실행할 때 전체 `node_modules`가 필요한데, `standalone` 옵션을 켜면 실행에 필요한 최소 의존성만 추려서 `.next/standalone`에 담아줌 — 무료 티어처럼 메모리가 작은 서버에서 이미지 크기/실행 부담을 줄이기 위함. 모노레포라 `outputFileTracingRoot`도 저장소 루트로 명시해야 경로가 꼬이지 않음. (주의: 이 부분은 내 작업 환경에서 arm64/네트워크 제약으로 직접 `next build` 실행 검증을 못 했음 — 로컬이나 CI에서 한 번 확인 필요.)
+- **빌드는 GitHub Actions, VM은 실행만**: `docker-compose.yml`(로컬용, 그 자리에서 빌드)과 별도로 `docker-compose.prod.yml`(배포용, GHCR에서 완성된 이미지를 받아서 실행만)을 분리. 이유: 무료 VM(RAM 1GB)에서 Next.js를 직접 빌드하면 메모리 부족으로 죽을 위험이 큼 — 리소스 넉넉한 GitHub Actions 서버에서 빌드/푸시하고, VM은 `docker compose pull && up -d`만 하도록 역할을 나눔.
+- **`.github/workflows/deploy.yml`**: main에 push되면 ① api/web 이미지를 빌드해서 GHCR(GitHub Container Registry)에 올리고 ② VM에 SSH로 접속해서 최신 이미지를 받아 재기동. 필요한 GitHub Secrets/서버측 `.env` 목록은 워크플로 파일 맨 아래 주석에 정리해둠 — GCP 콘솔 설정 끝난 뒤 값 채워 넣으면 됨.

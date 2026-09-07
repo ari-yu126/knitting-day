@@ -1,0 +1,66 @@
+# 배포 서버(VM) 전용 compose 파일.
+# 로컬 docker-compose.yml은 이미지를 그 자리에서 빌드하지만, 이 파일은 GitHub Actions가
+# 미리 빌드해서 GHCR(GitHub Container Registry)에 올려둔 완성된 이미지를 "받아서 실행"만
+# 함 — 메모리가 작은 무료 VM에서 무거운 빌드를 안 돌리기 위해서임.
+#
+# 사용법(서버에서):
+#   docker login ghcr.io -u <github-username>          # 최초 1회
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# 같은 폴더에 .env 파일이 있어야 함 (JWT_SECRET / EMAIL_USER / EMAIL_PASSWORD / SWAGGER_SERVER_URL).
+# GitHub Actions가 대신 만들어주는 파일이 아니라, 서버 준비할 때 딱 한 번 직접 만들어두는 값.
+# SWAGGER_SERVER_URL은 VM 공인 IP(예: http://34.22.68.198:4000) — 이걸 여기 파일에 직접
+# 박아두면 IP가 바뀔 때마다 이 파일을 고치고 다시 커밋해야 해서, .env로 빼서 서버에서만 바꾸면
+# 되도록 함.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: knitting-day-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: knittingday
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: knitting_day
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knittingday -d knitting_day"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: ghcr.io/ari-yu126/knitting-day-api:latest
+    container_name: knitting-day-api
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://knittingday:1234@postgres:5432/knitting_day
+      JWT_SECRET: ${JWT_SECRET}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      # Swagger UI의 "Try it out"이 실제 공인 주소로 요청을 보내도록 설정 (.env에서 값을 받음)
+      SWAGGER_SERVER_URL: ${SWAGGER_SERVER_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/ari-yu126/knitting-day-web:latest
+    container_name: knitting-day-web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # web 컨테이너가 서버 쪽(Next.js 서버 컴포넌트)에서 API를 부를 때 쓰는 내부 주소.
+      # 공인 IP(NEXT_PUBLIC_API_URL)로 자기 자신에게 되돌아오는 걸 클라우드가 막아놔서 필요함.
+      INTERNAL_API_URL: http://api:4000
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

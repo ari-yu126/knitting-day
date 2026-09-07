@@ -1,7 +1,7 @@
 ////////////// 댓글 관련 API
 import { Router } from "express";
-import { query } from "../lib/db";
-import { auth } from "../middleware/jwtAuth";
+import { query } from "../lib/db.js";
+import { auth } from "../middleware/jwtAuth.js";
 const router = Router();
 
 /**
@@ -17,7 +17,7 @@ const router = Router();
  *         name: postId
  *         required: true
  *         schema:
- *           type: number
+ *           type: integer
  *         description: 게시글 ID
  *     responses:
  *       200:
@@ -76,7 +76,7 @@ router.get("/posts/:postId/comments", async (req, res) => {
  *         name: postId
  *         required: true
  *         schema:
- *           type: number
+ *           type: integer
  *         description: 게시글 ID
  *     requestBody:
  *       required: true
@@ -161,7 +161,7 @@ router.post("/posts/:postId/comments", auth, async (req, res) => {
  *         name: commentId
  *         required: true
  *         schema:
- *           type: number
+ *           type: integer
  *         description: 수정할 댓글 ID
  *     requestBody:
  *       required: true
@@ -249,7 +249,7 @@ router.put("/comments/:commentId", auth, async (req, res) => {
  *         name: commentId
  *         required: true
  *         schema:
- *           type: number
+ *           type: integer
  *         description: 삭제할 댓글 ID
  *     responses:
  *       200:
