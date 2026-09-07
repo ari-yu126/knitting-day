@@ -40,6 +40,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      # Swagger UI의 "Try it out"이 실제 공인 주소로 요청을 보내도록 설정
+      # (VM 공인 IP가 바뀌면 이 값도 같이 바꿔줘야 함)
+      SWAGGER_SERVER_URL: http://34.22.68.198:4000
     depends_on:
       postgres:
         condition: service_healthy
