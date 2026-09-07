@@ -11,24 +11,80 @@
 
 - Backend(Node.js/Express) ✅ / DB(PostgreSQL) ✅ / API(REST) ✅ / Frontend(Next.js·TypeScript) ✅ — 필수 표시된 4개 전부 충족.
 - Swagger ✅ — 필수 표시는 없었지만 처음부터 구현.
-- Cloud Server / Docker(앱 컨테이너화) / GitHub Actions 자동배포 ❌ — 아직 미착수. (지금은 `docker-compose.yml`에 Postgres만 컨테이너로 띄우고, api/web은 로컬에서 직접 실행 중.) 원래 항목 설명에도 필수 표시가 없는 선택 영역.
+- Cloud / Docker / GitHub Actions — 코드·파이프라인은 `cloud-test`에 준비됨(Dockerfile, `docker-compose.prod.yml`, Actions). GCP VM·Secrets 연동 후 실제 배포 검증은 진행 중/잔여. 로컬은 여전히 Postgres Docker + api/web 직접 실행이 기본.
 
-### 주요 로직 (필수 구현) — 전부 완료
+### 주요 로직 (필수 구현) — 전부 완료 ✅
 
-- 로그인 ✅ — JWT 발급, 인증이 필요한 모든 API가 `auth` 미들웨어로 보호됨.
-- 회원가입 ✅ — 이메일 중복검사·이메일 인증(실제 발송)·bcrypt 암호화·사용자 정보 저장 전부 연결.
-- 게시판 ✅ — 로그인 사용자만 작성 가능, 본인 글만 수정/삭제 가능(403), 작성/목록조회/상세조회/수정/삭제 프론트-백엔드 전부 연결.
-- 댓글 ✅ — 로그인 사용자만 작성 가능, 본인 댓글만 삭제 가능(403), 작성/조회/삭제 전부 연결.
-- 페이징 ✅ — 게시글 목록 조회 시 서버 `LIMIT/OFFSET` + 프론트 페이지네이션 UI 연결.
+아래는 평가 체크리스트 기준으로 **무엇을/어떻게 구현했는지**다.  
+(“왜 이렇게 설계했는지” 깊은 설명은 그 아래 섹션 — 인증 JWT, DB, 프론트 상태관리 등 — 참고.)
+
+#### 로그인
+
+사용자는 이메일과 비밀번호로 로그인할 수 있어야 한다.
+
+- **JWT 기반 인증** (세션 쿠키가 아니라, 토큰을 클라이언트가 들고 다니는 방식)
+  1. 로그인 성공 → 서버가 JWT 발급 (`userId`, `email`, 만료 3시간)
+  2. 프론트가 토큰을 `useAuthStore`(+ localStorage)에 저장하고, API 요청마다 `Authorization: Bearer <token>`으로 전달
+  3. 보호 API는 `auth` 미들웨어(`jwt.verify`)로 토큰 검증 후 `req.user`에 담아 진행
+  4. 없거나 만료/위조면 **401**, 프론트 response interceptor가 로그아웃 처리
+- **로그인 성공 시 토큰 발급**
+  - `POST /auth/login`에서 이메일·비밀번호 확인(`bcrypt.compare`) 후 `jwt.sign` → 응답 `token` + `user`
+  - 프론트는 `response.data.token`을 `setToken`으로 저장
+- **인증이 필요한 API 보호**
+  - `auth` 미들웨어: 토큰 없거나 검증 실패 시 즉시 401 (본문 로직 진입 전)
+  - 수정/삭제는 로그인뿐 아니라 **본인 글/댓글인지** 서버에서 한 번 더 확인 (아니면 403)
+
+| 보호됨 (`auth`) | 공개 |
+| --- | --- |
+| 게시글 작성/수정/삭제 | 게시글 목록/상세 |
+| 좋아요 추가/취소 | 댓글 목록 |
+| 댓글 작성/수정/삭제 | 로그인·회원가입·이메일 관련 |
+| `GET /users/me` | |
+
+#### 회원가입
+
+사용자가 계정을 생성할 수 있어야 한다.
+
+- **이메일 중복 검사**: 프론트 버튼 → `GET /auth/check-email?email=...` → 서버가 `users` 조회 후 `{ available }` → UI `ok` / `taken`
+- **이메일 인증**
+  1. `POST /auth/send-code` — 6자리 코드 생성 → `email_verifications` 저장 → 메일 발송 (3분 만료)
+  2. `POST /auth/verify-code` — 코드·만료 검증 → `verified_at` 기록
+  3. `POST /auth/signup` 때도 서버가 인증 완료 여부를 다시 확인 (프론트 `verified`만 믿지 않음)
+- **비밀번호 암호화**: `bcrypt.hash(password, 10)` 저장 / 로그인 시 `bcrypt.compare` (평문 미저장)
+- **기본 사용자 정보 저장** (인증 끝난 뒤에만 INSERT): `email`, `password`(해시), `nickname`, `is_email_verified`, `agree_terms` / `agree_privacy` / `agree_marketing`
+
+#### 게시판
+
+로그인한 사용자만 작성 가능. 본인 글만 수정/삭제 가능.
+
+- **작성** — `POST /posts` + `auth` / 프론트 `/stitchday/write`(토큰 없으면 로그인) / JWT `userId`로 INSERT
+- **목록** — `GET /posts?page=1` 공개 / 페이지당 10개 / `users` JOIN + `LIMIT/OFFSET` / `?userId=`면 마이페이지 “내가 쓴 글”
+- **상세** — `GET /posts/:postId` 공개 / 없으면 404 / 이전·다음 글은 `created_at` 기준(아이디 ±1 아님)
+- **수정** — `PUT /posts/:postId` + `auth` → 존재 확인 → `user_id === JWT.userId` 아니면 403 → UPDATE / 프론트 `/stitchday/[id]/edit`
+- **삭제** — `DELETE /posts/:postId` + `auth` / 본인 확인 후 DELETE / 프론트 `PostOwnerActions`
+
+#### 댓글
+
+로그인 사용자만 작성. 본인 댓글만 삭제 가능. (수정 API는 백엔드에 있으나, 필수 UI는 작성·조회·삭제)
+
+- **작성** — `POST /posts/:postId/comments` + `auth` → INSERT → `posts.comment_count` +1 / 비로그인은 입력창 대신 로그인 안내
+- **조회** — `GET /posts/:postId/comments` 공개 / `comments`+`users` JOIN / 작성·삭제 후 목록 재조회
+- **삭제** — `DELETE /comments/:commentId` + `auth` → 본인 아니면 403 → DELETE → `comment_count` -1 / `userId`로 본인 판별 후 삭제 버튼 노출
+
+#### 페이징
+
+- **서버 효율 조회**: `page`만 받음 → 페이지당 10개 `LIMIT`+`OFFSET` → `COUNT(*)`로 `totalPages` → `{ posts, currentPage, totalPages, totalCount }`
+- **UI**: `/stitchday?page=N` URL 유지 / `PostsPagination`(PC 10개 블록·모바일 피커) / 총 글 수 표시
 
 ### 추가 구현 (선택)
 
-- 좋아요 기능 ✅ 구현 완료. 게시글 검색 ❌, 파일 업로드 ❌, 프로필 수정 ❌ — 미구현(선택 사항이라 의도적으로 스킵).
+- 좋아요 ✅ (`POST`/`DELETE /posts/:postId/like`). 검색 ❌, 파일 업로드 ❌, 프로필 수정 ❌ — 선택이라 의도적 스킵.
+- 마이페이지: `GET /users/me` ✅, 내 글은 `GET /posts?userId=` ✅. `/users/me/posts`·비밀번호 변경·내 댓글 API는 **없음**(추후).
 
-### 배포 계획 (진행 예정)
+### 배포 계획
 
-- 구조: GCE(Compute Engine) VM 한 대 + Docker Compose로 db/api/web 세 컨테이너를 한 곳에서 실행. 이미지 빌드는 GitHub Actions(무료 러너)에서 하고, VM은 완성된 이미지를 받아서 실행만 담당 — 무료 티어 VM(RAM 1GB)의 빌드 부담을 줄이기 위한 선택.
-- 일정: 코드 쪽(Dockerfile 2개, compose 확장, Actions workflow)은 제출 전날 밤 미리 준비. 실제 GCP 콘솔 설정(프로젝트/VM/방화벽/시크릿 등록)과 첫 배포는 제출 당일 진행 — 막히면 배포는 포기하고 로컬 시연으로 전환(필수 기능은 이미 완료된 상태라 제출 자체엔 지장 없음).
+- 구조: GCE VM + Docker Compose(db/api/web). 이미지 빌드는 GitHub Actions → GHCR, VM은 pull/실행만 (`docker-compose.prod.yml`).
+- 브랜치 `cloud-test`에 Dockerfile·Actions 파이프라인 커밋/푸시까지 완료. GCP VM·GitHub Secrets 등록 후 실제 배포 검증 남음. 막히면 로컬 시연으로 전환 가능(필수 로직은 완료).
 
 ---
 
