@@ -21,7 +21,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DEMO_CODE = "123456";
 const CODE_LENGTH = 6;
 
-type EmailState = "idle" | "checking" | "ok" | "taken" | "invalid";
+type EmailState = "idle" | "checking" | "ok" | "taken" | "invalid" | "error";
 
 function SectionHeading({
   index,
@@ -104,8 +104,9 @@ export default function SignupPage() {
         setEmailState("taken");
       }
     } catch (error) {
+      // 서버 오류/네트워크 오류를 "이미 가입된 이메일"로 잘못 표시하지 않도록 별도 상태로 구분
       console.error(error);
-      setEmailState("taken");
+      setEmailState("error");
     }
   };
 
@@ -272,7 +273,9 @@ export default function SignupPage() {
                     }}
                     className={cn(
                       "text-font disabled:bg-beige-light/60 disabled:text-gray w-full rounded-xl border bg-white px-3.5 py-3.5 text-sm transition-colors focus:ring-4 focus:outline-none",
-                      emailState === "taken" || emailState === "invalid"
+                      emailState === "taken" ||
+                        emailState === "invalid" ||
+                        emailState === "error"
                         ? "border-pink-400 focus:ring-pink-100"
                         : emailState === "ok"
                           ? "border-emerald-400"
@@ -302,6 +305,12 @@ export default function SignupPage() {
                   <p className="mt-1.5 flex items-center gap-1.5 text-xs text-pink-600">
                     <AlertCircle className="h-3.5 w-3.5" aria-hidden />
                     이미 가입된 이메일이에요.
+                  </p>
+                )}
+                {emailState === "error" && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-pink-600">
+                    <AlertCircle className="h-3.5 w-3.5" aria-hidden />
+                    확인 중 오류가 발생했어요. 다시 시도해 주세요.
                   </p>
                 )}
                 {emailState === "ok" && !codeSent && (
