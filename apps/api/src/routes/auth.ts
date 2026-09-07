@@ -3,7 +3,6 @@ import { Router } from "express";
 import { query } from "../lib/db.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { auth } from "../middleware/jwtAuth.js";
 import { transporter } from "../lib/mailer.js";
 
 const router = Router();
@@ -354,6 +353,25 @@ router.post("/signup", async (req, res) => {
  *     responses:
  *       200:
  *         description: 로그인 완료
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 token:
+ *                   type: string
+ *                   description: 이후 요청의 Authorization 헤더에 실어 보낼 JWT
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     email:
+ *                       type: string
+ *                     nickname:
+ *                       type: string
  *       400:
  *         description: 이메일이나 비밀번호 불일치
  *       500:

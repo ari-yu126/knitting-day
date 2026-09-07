@@ -14,6 +14,18 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     tags:
+ *       - System
+ *     summary: 서버 상태 확인
+ *     description: API 서버가 살아있는지 확인합니다 (DB는 확인 안 함).
+ *     responses:
+ *       200:
+ *         description: 서버 정상
+ */
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
@@ -21,6 +33,20 @@ app.get("/health", (_req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /db-test:
+ *   get:
+ *     tags:
+ *       - System
+ *     summary: DB 연결 확인
+ *     description: PostgreSQL에 실제로 접속해서 현재 시각을 조회합니다.
+ *     responses:
+ *       200:
+ *         description: DB 연결 정상
+ *       500:
+ *         description: DB 연결 실패
+ */
 app.get("/db-test", async (_req, res) => {
   try {
     const result = await query("SELECT NOW()");
