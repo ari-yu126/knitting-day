@@ -1,8 +1,19 @@
 import axios from "axios";
 import { useAuthStore } from "@/store/useAuthStore";
 
+// 서버 컴포넌트(Next.js 서버 안)에서 호출할 때와, 브라우저에서 호출할 때 주소가 달라야 함.
+// - 브라우저: 사용자 컴퓨터에서 직접 부르는 거라 공인 주소(NEXT_PUBLIC_API_URL)가 필요함.
+// - 서버(컨테이너 내부): web 컨테이너 자기 자신이 API를 부르는 거라, 굳이 인터넷에 나갔다가
+//   같은 서버로 다시 들어올 필요 없이 도커 내부망 이름(INTERNAL_API_URL, 예: http://api:4000)으로
+//   바로 갈 수 있음. 오히려 일부 클라우드는 "자기 공인 IP로 다시 들어오는" 경로(hairpin NAT)를
+//   막아놔서, 공인 주소를 그대로 쓰면 서버 쪽 호출만 실패하는 문제가 있었음.
+const baseURL =
+  typeof window === "undefined"
+    ? process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL
+    : process.env.NEXT_PUBLIC_API_URL;
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL,
 });
 
 api.interceptors.request.use((config) => {

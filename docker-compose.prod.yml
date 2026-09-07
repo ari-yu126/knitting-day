@@ -50,6 +50,10 @@ services:
     restart: always
     ports:
       - "3000:3000"
+    environment:
+      # web 컨테이너가 서버 쪽(Next.js 서버 컴포넌트)에서 API를 부를 때 쓰는 내부 주소.
+      # 공인 IP(NEXT_PUBLIC_API_URL)로 자기 자신에게 되돌아오는 걸 클라우드가 막아놔서 필요함.
+      INTERNAL_API_URL: http://api:4000
     depends_on:
       - api
 
