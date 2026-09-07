@@ -8,8 +8,11 @@
 #   docker compose -f docker-compose.prod.yml pull
 #   docker compose -f docker-compose.prod.yml up -d
 #
-# 같은 폴더에 .env 파일이 있어야 함 (JWT_SECRET / EMAIL_USER / EMAIL_PASSWORD).
+# 같은 폴더에 .env 파일이 있어야 함 (JWT_SECRET / EMAIL_USER / EMAIL_PASSWORD / SWAGGER_SERVER_URL).
 # GitHub Actions가 대신 만들어주는 파일이 아니라, 서버 준비할 때 딱 한 번 직접 만들어두는 값.
+# SWAGGER_SERVER_URL은 VM 공인 IP(예: http://34.22.68.198:4000) — 이걸 여기 파일에 직접
+# 박아두면 IP가 바뀔 때마다 이 파일을 고치고 다시 커밋해야 해서, .env로 빼서 서버에서만 바꾸면
+# 되도록 함.
 
 services:
   postgres:
@@ -40,9 +43,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
-      # Swagger UI의 "Try it out"이 실제 공인 주소로 요청을 보내도록 설정
-      # (VM 공인 IP가 바뀌면 이 값도 같이 바꿔줘야 함)
-      SWAGGER_SERVER_URL: http://34.22.68.198:4000
+      # Swagger UI의 "Try it out"이 실제 공인 주소로 요청을 보내도록 설정 (.env에서 값을 받음)
+      SWAGGER_SERVER_URL: ${SWAGGER_SERVER_URL}
     depends_on:
       postgres:
         condition: service_healthy

@@ -9,7 +9,7 @@ const router = Router();
 
 /**
  * @swagger
- * /check-email:
+ * /auth/check-email:
  *   get:
  *     tags:
  *       - Auth
@@ -56,7 +56,7 @@ router.get("/check-email", async (req, res) => {
 
 /**
  * @swagger
- * /send-code:
+ * /auth/send-code:
  *   post:
  *     tags:
  *       - Auth
@@ -137,7 +137,7 @@ router.post("/send-code", async (req, res) => {
 
 /**
  * @swagger
- * /verify-code:
+ * /auth/verify-code:
  *   post:
  *     tags:
  *       - Auth
@@ -218,7 +218,7 @@ router.post("/verify-code", async (req, res) => {
 
 /**
  * @swagger
- * /signup:
+ * /auth/signup:
  *   post:
  *     tags:
  *       - Auth
@@ -327,7 +327,7 @@ router.post("/signup", async (req, res) => {
 
 /**
  * @swagger
- * /login:
+ * /auth/login:
  *   post:
  *     tags:
  *       - Auth
